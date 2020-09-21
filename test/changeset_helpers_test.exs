@@ -6,7 +6,7 @@ defmodule ChangesetHelpersTest do
   import Ecto.Changeset
   import ChangesetHelpers
 
-  test "change_assoc" do
+  setup do
     account_changeset =
       change(
         %Account{},
@@ -19,11 +19,17 @@ defmodule ChangesetHelpersTest do
               %{title: "Article 2", comments: [%{body: "Comment 1"}, %{body: "Comment 2"}]}
             ],
             user_config: %{
-              address: %{street: "An address"}
+              address: %{street: "A street"}
             }
           }
         }
       )
+
+    [account_changeset: account_changeset]
+  end
+
+  test "change_assoc", context do
+    account_changeset = context[:account_changeset]
 
     {_, [article_changeset | _]} = change_assoc(account_changeset, [:user, :articles])
 
@@ -40,33 +46,17 @@ defmodule ChangesetHelpersTest do
     assert %Ecto.Changeset{data: %Address{}, changes: %{street: "Foo street"}} = address_changeset
   end
 
-  test "put_assoc" do
-    account_changeset =
-      change(
-        %Account{},
-        %{
-          email: "john@example.net",
-          user: %{
-            name: "John",
-            articles: [
-              %{title: "Article 1", comments: [%{body: "Comment 1"}, %{body: "Comment 2"}]},
-              %{title: "Article 2", comments: [%{body: "Comment 1"}, %{body: "Comment 2"}]}
-            ],
-            user_config: %{
-              address: %{street: "An address"}
-            }
-          }
-        }
-      )
+  test "put_assoc", context do
+    account_changeset = context[:account_changeset]
 
     assert article_changeset = %Ecto.Changeset{data: %Article{}}
 
-    address_changeset = change(%Address{}, %{street: "Another address"})
+    address_changeset = change(%Address{}, %{street: "Another street"})
 
     account_changeset =
       ChangesetHelpers.put_assoc(account_changeset, [:user, :user_config, :address], address_changeset)
 
-    assert "Another address" =
+    assert "Another street" =
              Ecto.Changeset.fetch_field!(account_changeset, :user)
              |> Map.fetch!(:user_config)
              |> Map.fetch!(:address)
@@ -76,44 +66,28 @@ defmodule ChangesetHelpersTest do
       ChangesetHelpers.put_assoc(
         account_changeset,
         [:user, :user_config, :address],
-        &change(&1, %{street: "The address"})
+        &change(&1, %{street: "Foo street"})
       )
 
-    assert "The address" =
+    assert "Foo street" =
              Ecto.Changeset.fetch_field!(account_changeset, :user)
              |> Map.fetch!(:user_config)
              |> Map.fetch!(:address)
              |> Map.fetch!(:street)
   end
 
-  test "diff_field" do
-    account_changeset =
-      change(
-        %Account{},
-        %{
-          email: "john@example.net",
-          user: %{
-            name: "John",
-            articles: [
-              %{title: "Article 1", comments: [%{body: "Comment 1"}, %{body: "Comment 2"}]},
-              %{title: "Article 2", comments: [%{body: "Comment 1"}, %{body: "Comment 2"}]}
-            ],
-            user_config: %{
-              address: %{street: "An address"}
-            }
-          }
-        }
-      )
+  test "diff_field", context do
+    account_changeset = context[:account_changeset]
 
     {_, address_changeset} =
-      change_assoc(account_changeset, [:user, :user_config, :address], %{street: "Another address"})
+      change_assoc(account_changeset, [:user, :user_config, :address], %{street: "Another street"})
 
     new_account_changeset =
       ChangesetHelpers.put_assoc(account_changeset, [:user, :user_config, :address], address_changeset)
 
-    {address_changed, address1, address2} =
+    {street_changed, street1, street2} =
       diff_field(account_changeset, new_account_changeset, [:user, :user_config, :address, :street])
 
-    assert {true, "An address", "Another address"} = {address_changed, address1, address2}
+    assert {true, "A street", "Another street"} = {street_changed, street1, street2}
   end
 end
