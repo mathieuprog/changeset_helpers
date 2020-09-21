@@ -26,7 +26,7 @@ article to a form).
 Returns the nested association in a changeset. This function will first look into the changes and then fails back on
 data wrapped in a changeset.
 
-Changes may be added to the given changeset through the thrid argument.
+Changes may be added to the given changeset through the third argument.
 
 A tuple is returned containing the original changeset and the changeset of the association.
 
