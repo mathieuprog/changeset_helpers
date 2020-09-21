@@ -59,17 +59,17 @@ defmodule ChangesetHelpers do
     Ecto.Changeset.put_assoc(changeset, key, put_assoc(do_change_assoc(changeset, [key], %{}), tail_keys, value))
   end
 
-  def diff_field!(changeset1, changeset2, [key | []]) do
+  def diff_field(changeset1, changeset2, [key | []]) do
     field1 = Ecto.Changeset.fetch_field!(changeset1, key)
     field2 = Ecto.Changeset.fetch_field!(changeset2, key)
 
     {field1 != field2, field1, field2}
   end
 
-  def diff_field!(changeset1, changeset2, [key | tail_keys]) do
+  def diff_field(changeset1, changeset2, [key | tail_keys]) do
     changeset1 = Map.get(changeset1.changes, key, Map.fetch!(changeset1.data, key)) |> Ecto.Changeset.change()
     changeset2 = Map.get(changeset2.changes, key, Map.fetch!(changeset2.data, key)) |> Ecto.Changeset.change()
 
-    diff_field!(changeset1, changeset2, tail_keys)
+    diff_field(changeset1, changeset2, tail_keys)
   end
 end
