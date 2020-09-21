@@ -2,7 +2,7 @@ defmodule ChangesetHelpersTest do
   use ExUnit.Case
   doctest ChangesetHelpers
 
-  alias ChangesetHelpers.{Account, Address, Article}
+  alias ChangesetHelpers.{Account, Address, Article, User}
   import Ecto.Changeset
   import ChangesetHelpers
 
@@ -45,6 +45,12 @@ defmodule ChangesetHelpersTest do
       change_assoc(account, [:user, :user_config, :address], %{street: "Foo street"})
 
     assert %Ecto.Changeset{data: %Address{}, changes: %{street: "Foo street"}} = address_changeset
+  end
+
+  test "change_assoc with NotLoaded assoc" do
+    account = %Account{user: %User{}}
+
+    assert {_, []} = change_assoc(account, [:user, :articles])
   end
 
   test "put_assoc", context do

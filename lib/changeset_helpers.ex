@@ -28,22 +28,24 @@ defmodule ChangesetHelpers do
   end
 
   defp do_change_assoc(%Ecto.Changeset{} = changeset, [key | []], changes) do
-    Map.get(changeset.changes, key, Map.fetch!(changeset.data, key))
+    Map.get(changeset.changes, key, Map.fetch!(changeset.data, key) |> load!(changeset.data))
     |> do_change_assoc(changes)
   end
 
   defp do_change_assoc(%{__meta__: _} = schema, [key | []], changes) do
     Map.fetch!(schema, key)
+    |> load!(schema)
     |> do_change_assoc(changes)
   end
 
   defp do_change_assoc(%Ecto.Changeset{} = changeset, [key | tail_keys], changes) do
-    Map.get(changeset.changes, key, Map.fetch!(changeset.data, key))
+    Map.get(changeset.changes, key, Map.fetch!(changeset.data, key) |> load!(changeset.data))
     |> do_change_assoc(tail_keys, changes)
   end
 
   defp do_change_assoc(%{__meta__: _} = schema, [key | tail_keys], changes) do
     Map.fetch!(schema, key)
+    |> load!(schema)
     |> do_change_assoc(tail_keys, changes)
   end
 
@@ -124,13 +126,30 @@ defmodule ChangesetHelpers do
 
   defp do_diff_field(changeset1, changeset2, [key | tail_keys]) do
     changeset1 =
-      Map.get(changeset1.changes, key, Map.fetch!(changeset1.data, key))
+      Map.get(changeset1.changes, key, Map.fetch!(changeset1.data, key) |> load!(changeset1.data))
       |> Ecto.Changeset.change()
 
     changeset2 =
-      Map.get(changeset2.changes, key, Map.fetch!(changeset2.data, key))
+      Map.get(changeset2.changes, key, Map.fetch!(changeset2.data, key) |> load!(changeset2.data))
       |> Ecto.Changeset.change()
 
     do_diff_field(changeset1, changeset2, tail_keys)
   end
+
+  defp load!(%Ecto.Association.NotLoaded{__cardinality__: cardinality}, %{__meta__: %{state: :built}}) do
+    cardinality_to_empty(cardinality)
+  end
+
+  defp load!(%Ecto.Association.NotLoaded{__field__: field}, struct) do
+    raise "attempting to change association `#{field}` " <>
+          "from `#{inspect struct.__struct__}` that was not loaded. Please preload your " <>
+          "associations before manipulating them through changesets"
+  end
+
+  defp load!(loaded, struct) do
+    loaded
+  end
+
+  defp cardinality_to_empty(:one), do: nil
+  defp cardinality_to_empty(:many), do: []
 end
