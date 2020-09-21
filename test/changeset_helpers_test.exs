@@ -41,7 +41,8 @@ defmodule ChangesetHelpersTest do
 
     assert %Ecto.Changeset{data: %Article{}} = article_changeset
 
-    {_, address_changeset} = change_assoc(account, [:user, :user_config, :address], %{street: "Foo street"})
+    {_, address_changeset} =
+      change_assoc(account, [:user, :user_config, :address], %{street: "Foo street"})
 
     assert %Ecto.Changeset{data: %Address{}, changes: %{street: "Foo street"}} = address_changeset
   end
@@ -54,7 +55,11 @@ defmodule ChangesetHelpersTest do
     address_changeset = change(%Address{}, %{street: "Another street"})
 
     account_changeset =
-      ChangesetHelpers.put_assoc(account_changeset, [:user, :user_config, :address], address_changeset)
+      ChangesetHelpers.put_assoc(
+        account_changeset,
+        [:user, :user_config, :address],
+        address_changeset
+      )
 
     assert "Another street" =
              Ecto.Changeset.fetch_field!(account_changeset, :user)
@@ -83,10 +88,19 @@ defmodule ChangesetHelpersTest do
       change_assoc(account_changeset, [:user, :user_config, :address], %{street: "Another street"})
 
     new_account_changeset =
-      ChangesetHelpers.put_assoc(account_changeset, [:user, :user_config, :address], address_changeset)
+      ChangesetHelpers.put_assoc(
+        account_changeset,
+        [:user, :user_config, :address],
+        address_changeset
+      )
 
     {street_changed, street1, street2} =
-      diff_field(account_changeset, new_account_changeset, [:user, :user_config, :address, :street])
+      diff_field(account_changeset, new_account_changeset, [
+        :user,
+        :user_config,
+        :address,
+        :street
+      ])
 
     assert {true, "A street", "Another street"} = {street_changed, street1, street2}
   end
