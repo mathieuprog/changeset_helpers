@@ -4,6 +4,8 @@ defmodule ChangesetHelpers do
   """
 
   def change_assoc(struct_or_changeset, keys, changes \\ %{}) do
+    keys = List.wrap(keys)
+
     changed_assoc = do_change_assoc(struct_or_changeset, keys, changes)
 
     {
@@ -50,30 +52,38 @@ defmodule ChangesetHelpers do
     Ecto.Changeset.change(changeset, changes)
   end
 
-  def put_assoc(changeset, [key | []], fun) when is_function(fun) do
+  def put_assoc(changeset, keys, value) do
+    do_put_assoc(changeset, List.wrap(keys), value)
+  end
+
+  defp do_put_assoc(changeset, [key | []], fun) when is_function(fun) do
     Ecto.Changeset.put_assoc(changeset, key, fun.(do_change_assoc(changeset, [key], %{})))
   end
 
-  def put_assoc(changeset, [key | []], value) do
+  defp do_put_assoc(changeset, [key | []], value) do
     Ecto.Changeset.put_assoc(changeset, key, value)
   end
 
-  def put_assoc(changeset, [key | tail_keys], value) do
+  defp do_put_assoc(changeset, [key | tail_keys], value) do
     Ecto.Changeset.put_assoc(
       changeset,
       key,
-      put_assoc(do_change_assoc(changeset, [key], %{}), tail_keys, value)
+      do_put_assoc(do_change_assoc(changeset, [key], %{}), tail_keys, value)
     )
   end
 
-  def diff_field(changeset1, changeset2, [key | []]) do
+  def diff_field(changeset1, changeset2, keys) do
+    do_diff_field(changeset1, changeset2, List.wrap(keys))
+  end
+
+  defp do_diff_field(changeset1, changeset2, [key | []]) do
     field1 = Ecto.Changeset.fetch_field!(changeset1, key)
     field2 = Ecto.Changeset.fetch_field!(changeset2, key)
 
     {field1 != field2, field1, field2}
   end
 
-  def diff_field(changeset1, changeset2, [key | tail_keys]) do
+  defp do_diff_field(changeset1, changeset2, [key | tail_keys]) do
     changeset1 =
       Map.get(changeset1.changes, key, Map.fetch!(changeset1.data, key))
       |> Ecto.Changeset.change()
@@ -82,6 +92,6 @@ defmodule ChangesetHelpers do
       Map.get(changeset2.changes, key, Map.fetch!(changeset2.data, key))
       |> Ecto.Changeset.change()
 
-    diff_field(changeset1, changeset2, tail_keys)
+    do_diff_field(changeset1, changeset2, tail_keys)
   end
 end
