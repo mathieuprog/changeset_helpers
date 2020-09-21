@@ -67,6 +67,10 @@ defmodule ChangesetHelpers do
     Ecto.Changeset.change(changeset, changes)
   end
 
+  defp do_change_assoc(%Ecto.Changeset{} = changeset, changes) do
+    Ecto.Changeset.change(changeset, changes)
+  end
+
   @doc ~S"""
   Puts the given nested association in the changeset through a given list of field names.
 
@@ -136,8 +140,14 @@ defmodule ChangesetHelpers do
     do_diff_field(changeset1, changeset2, tail_keys)
   end
 
-  defp load!(%Ecto.Association.NotLoaded{__cardinality__: cardinality}, %{__meta__: %{state: :built}}) do
-    cardinality_to_empty(cardinality)
+  defp load!(%Ecto.Association.NotLoaded{} = not_loaded, %{__meta__: %{state: :built}}) do
+    case cardinality_to_empty(not_loaded.__cardinality__) do
+      nil ->
+        Ecto.build_assoc(struct(not_loaded.__owner__), not_loaded.__field__)
+
+      [] ->
+        []
+    end
   end
 
   defp load!(%Ecto.Association.NotLoaded{__field__: field}, struct) do

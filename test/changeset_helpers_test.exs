@@ -51,6 +51,10 @@ defmodule ChangesetHelpersTest do
     account = %Account{user: %User{}}
 
     assert {_, []} = change_assoc(account, [:user, :articles])
+
+    account = %Account{}
+
+    assert {_, []} = change_assoc(account, [:user, :articles])
   end
 
   test "put_assoc", context do
