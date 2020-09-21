@@ -6,7 +6,10 @@ defmodule ChangesetHelpers do
   def change_assoc(struct_or_changeset, keys, changes \\ %{}) do
     changed_assoc = do_change_assoc(struct_or_changeset, keys, changes)
 
-    {put_assoc(struct_or_changeset |> Ecto.Changeset.change(), keys, changed_assoc), changed_assoc}
+    {
+      put_assoc(struct_or_changeset |> Ecto.Changeset.change(), keys, changed_assoc),
+      changed_assoc
+    }
   end
 
   defp do_change_assoc(%Ecto.Changeset{} = changeset, [key | []], changes) do
@@ -56,7 +59,11 @@ defmodule ChangesetHelpers do
   end
 
   def put_assoc(changeset, [key | tail_keys], value) do
-    Ecto.Changeset.put_assoc(changeset, key, put_assoc(do_change_assoc(changeset, [key], %{}), tail_keys, value))
+    Ecto.Changeset.put_assoc(
+      changeset,
+      key,
+      put_assoc(do_change_assoc(changeset, [key], %{}), tail_keys, value)
+    )
   end
 
   def diff_field(changeset1, changeset2, [key | []]) do
@@ -67,8 +74,13 @@ defmodule ChangesetHelpers do
   end
 
   def diff_field(changeset1, changeset2, [key | tail_keys]) do
-    changeset1 = Map.get(changeset1.changes, key, Map.fetch!(changeset1.data, key)) |> Ecto.Changeset.change()
-    changeset2 = Map.get(changeset2.changes, key, Map.fetch!(changeset2.data, key)) |> Ecto.Changeset.change()
+    changeset1 =
+      Map.get(changeset1.changes, key, Map.fetch!(changeset1.data, key))
+      |> Ecto.Changeset.change()
+
+    changeset2 =
+      Map.get(changeset2.changes, key, Map.fetch!(changeset2.data, key))
+      |> Ecto.Changeset.change()
 
     diff_field(changeset1, changeset2, tail_keys)
   end
