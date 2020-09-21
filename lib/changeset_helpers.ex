@@ -47,6 +47,10 @@ defmodule ChangesetHelpers do
     Ecto.Changeset.change(changeset, changes)
   end
 
+  def put_assoc(changeset, [key | []], fun) when is_function(fun) do
+    Ecto.Changeset.put_assoc(changeset, key, fun.(do_change_assoc!(changeset, [key], %{})))
+  end
+
   def put_assoc(changeset, [key | []], value) do
     Ecto.Changeset.put_assoc(changeset, key, value)
   end
