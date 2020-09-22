@@ -19,7 +19,7 @@ ChangesetHelpers.put_assoc(account_changeset, [:user, :articles],
 ```
 
 In the code above, we change a new empty Article, and add the changeset into the articles association (typically done when we want to add a new
-article to a form).
+row of form inputs to add an entity into a form handling a nested collection of entities).
 
 ### `change_assoc(struct_or_changeset, keys, changes \\ %{})`
 
