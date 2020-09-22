@@ -18,7 +18,7 @@ ChangesetHelpers.put_assoc(account_changeset, [:user, :articles],
   &(Enum.concat(&1, [%Article{} |> Ecto.Changeset.change()])))
 ```
 
-In the code above, we add a new empty Article to the articles association (typically done when we want to add a new
+In the code above, we change a new empty Article, and add the changeset into the articles association (typically done when we want to add a new
 article to a form).
 
 ### `change_assoc(struct_or_changeset, keys, changes \\ %{})`
@@ -28,7 +28,7 @@ data wrapped in a changeset.
 
 Changes may be added to the given changeset through the third argument.
 
-A tuple is returned containing the original changeset and the changeset of the association.
+A tuple is returned containing the modified root changeset and the changeset of the association.
 
 ```
 {account_changeset, address_changeset} =
@@ -37,7 +37,7 @@ A tuple is returned containing the original changeset and the changeset of the a
 
 ### `diff_field(changeset1, changeset2, keys)`
 
-This function allows checking if a given field is different between two changesets.
+This function allows checking if a given field is different in two changesets.
 
 ```
 {street_changed, street1, street2} =
