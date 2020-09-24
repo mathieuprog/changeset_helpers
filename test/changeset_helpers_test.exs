@@ -2,7 +2,7 @@ defmodule ChangesetHelpersTest do
   use ExUnit.Case
   doctest ChangesetHelpers
 
-  alias ChangesetHelpers.{Account, Address, Article, User}
+  alias ChangesetHelpers.{Account, Address, Article, User, UserConfig}
   import Ecto.Changeset
   import ChangesetHelpers
 
@@ -96,6 +96,12 @@ defmodule ChangesetHelpersTest do
 
     assert {:changes, "A street"} = ChangesetHelpers.fetch_field(account_changeset, [:user, :user_config, :address, :street])
     assert "A street" = ChangesetHelpers.fetch_field!(account_changeset, [:user, :user_config, :address, :street])
+
+    user_changeset = change(%User{name: "John", user_config: %UserConfig{address: %Address{street: "John's street"}}})
+    account_changeset = change(%Account{}, %{user: user_changeset})
+
+    assert {:data, "John"} = ChangesetHelpers.fetch_field(account_changeset, [:user, :name])
+    assert {:data, "John's street"} = ChangesetHelpers.fetch_field(account_changeset, [:user, :user_config, :address, :street])
   end
 
   test "fetch_change", context do

@@ -119,11 +119,11 @@ defmodule ChangesetHelpers do
     ChangesetHelpers.fetch_field(account_changeset, [:user, :config, :address, :street])
   ```
   """
-  def fetch_field(changeset, [key | []]) do
+  def fetch_field(%Ecto.Changeset{} = changeset, [key | []]) do
     Ecto.Changeset.fetch_field(changeset, key)
   end
 
-  def fetch_field(changeset, [key | tail_keys]) do
+  def fetch_field(%Ecto.Changeset{} = changeset, [key | tail_keys]) do
     Map.get(changeset.changes, key, Map.fetch!(changeset.data, key) |> load!(changeset.data))
     |> Ecto.Changeset.change()
     |> fetch_field(tail_keys)
@@ -136,7 +136,7 @@ defmodule ChangesetHelpers do
   street = ChangesetHelpers.fetch_field!(account_changeset, [:user, :config, :address, :street])
   ```
   """
-  def fetch_field!(changeset, keys) do
+  def fetch_field!(%Ecto.Changeset{} = changeset, keys) do
     case fetch_field(changeset, keys) do
       {_, value} ->
         value
@@ -157,11 +157,11 @@ defmodule ChangesetHelpers do
     ChangesetHelpers.fetch_change(account_changeset, [:user, :config, :address, :street])
   ```
   """
-  def fetch_change(changeset, [key | []]) do
+  def fetch_change(%Ecto.Changeset{} = changeset, [key | []]) do
     Ecto.Changeset.fetch_change(changeset, key)
   end
 
-  def fetch_change(changeset, [key | tail_keys]) do
+  def fetch_change(%Ecto.Changeset{} = changeset, [key | tail_keys]) do
     case Map.get(changeset.changes, key) do
       nil ->
         nil
@@ -178,7 +178,7 @@ defmodule ChangesetHelpers do
   street = ChangesetHelpers.fetch_change!(account_changeset, [:user, :config, :address, :street])
   ```
   """
-  def fetch_change!(changeset, keys) do
+  def fetch_change!(%Ecto.Changeset{} = changeset, keys) do
     case fetch_change(changeset, keys) do
       {:ok, value} ->
         value
@@ -196,7 +196,7 @@ defmodule ChangesetHelpers do
     diff_field(account_changeset, new_account_changeset, [:user, :config, :address, :street])
   ```
   """
-  def diff_field(changeset1, changeset2, keys) do
+  def diff_field(%Ecto.Changeset{} = changeset1, %Ecto.Changeset{} = changeset2, keys) do
     field1 = fetch_field!(changeset1, keys)
     field2 = fetch_field!(changeset2, keys)
 
