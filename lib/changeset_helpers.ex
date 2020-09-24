@@ -197,26 +197,10 @@ defmodule ChangesetHelpers do
   ```
   """
   def diff_field(changeset1, changeset2, keys) do
-    do_diff_field(changeset1, changeset2, List.wrap(keys))
-  end
-
-  defp do_diff_field(changeset1, changeset2, [key | []]) do
-    field1 = Ecto.Changeset.fetch_field!(changeset1, key)
-    field2 = Ecto.Changeset.fetch_field!(changeset2, key)
+    field1 = fetch_field!(changeset1, keys)
+    field2 = fetch_field!(changeset2, keys)
 
     {field1 != field2, field1, field2}
-  end
-
-  defp do_diff_field(changeset1, changeset2, [key | tail_keys]) do
-    changeset1 =
-      Map.get(changeset1.changes, key, Map.fetch!(changeset1.data, key) |> load!(changeset1.data))
-      |> Ecto.Changeset.change()
-
-    changeset2 =
-      Map.get(changeset2.changes, key, Map.fetch!(changeset2.data, key) |> load!(changeset2.data))
-      |> Ecto.Changeset.change()
-
-    do_diff_field(changeset1, changeset2, tail_keys)
   end
 
   defp load!(%Ecto.Association.NotLoaded{} = not_loaded, %{__meta__: %{state: :built}}) do
