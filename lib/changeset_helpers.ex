@@ -67,10 +67,6 @@ defmodule ChangesetHelpers do
     Ecto.Changeset.change(changeset, changes)
   end
 
-  defp do_change_assoc(%Ecto.Changeset{} = changeset, changes) do
-    Ecto.Changeset.change(changeset, changes)
-  end
-
   @doc ~S"""
   Puts the given nested association in the changeset through a given list of field names.
 
@@ -239,7 +235,7 @@ defmodule ChangesetHelpers do
           "associations before manipulating them through changesets"
   end
 
-  defp load!(loaded, struct) do
+  defp load!(loaded, _struct) do
     loaded
   end
 
