@@ -35,6 +35,40 @@ A tuple is returned containing the original changeset and the changeset of the a
   change_assoc(account_changeset, [:user, :user_config, :address], %{street: "Foo street"})
 ```
 
+### `fetch_field(changeset, keys)`
+
+Fetches the given nested field from changes or from the data.
+
+```
+{:changes, street} =
+  ChangesetHelpers.fetch_field(account_changeset, [:user, :config, :address, :street])
+```
+
+### `fetch_field!(changeset, keys)`
+
+Same as `fetch_field/2` but returns the value or raises if the given nested key was not found.
+
+```
+street = ChangesetHelpers.fetch_field!(account_changeset, [:user, :config, :address, :street])
+```
+
+### `fetch_change(changeset, keys)`
+
+Fetches the given nested field from changes or from the data.
+
+```
+{:ok, street} =
+  ChangesetHelpers.fetch_change(account_changeset, [:user, :config, :address, :street])
+```
+
+### `fetch_change!(changeset, keys)`
+
+Same as `fetch_change/2` but returns the value or raises if the given nested key was not found.
+
+```
+street = ChangesetHelpers.fetch_change!(account_changeset, [:user, :config, :address, :street])
+```
+
 ### `diff_field(changeset1, changeset2, keys)`
 
 This function allows checking if a given field is different between two changesets.

@@ -91,6 +91,20 @@ defmodule ChangesetHelpersTest do
              |> Map.fetch!(:street)
   end
 
+  test "fetch_field", context do
+    account_changeset = context[:account_changeset]
+
+    assert {:changes, "A street"} = ChangesetHelpers.fetch_field(account_changeset, [:user, :user_config, :address, :street])
+    assert "A street" = ChangesetHelpers.fetch_field!(account_changeset, [:user, :user_config, :address, :street])
+  end
+
+  test "fetch_change", context do
+    account_changeset = context[:account_changeset]
+
+    assert {:ok, "A street"} = ChangesetHelpers.fetch_change(account_changeset, [:user, :user_config, :address, :street])
+    assert "A street" = ChangesetHelpers.fetch_change!(account_changeset, [:user, :user_config, :address, :street])
+  end
+
   test "diff_field", context do
     account_changeset = context[:account_changeset]
 

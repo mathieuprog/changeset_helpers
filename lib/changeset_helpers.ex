@@ -13,7 +13,7 @@ defmodule ChangesetHelpers do
 
   ```elixir
   {account_changeset, address_changeset} =
-    change_assoc(account_changeset, [:user, :user_config, :address], %{street: "Foo street"})
+    change_assoc(account_changeset, [:user, :config, :address], %{street: "Foo street"})
   ```
   """
   def change_assoc(struct_or_changeset, keys, changes \\ %{}) do
@@ -110,11 +110,94 @@ defmodule ChangesetHelpers do
   end
 
   @doc ~S"""
+  Fetches the given nested field from changes or from the data.
+
+  While `fetch_change/2` only looks at the current changes to retrieve a value, this function looks at the changes and
+  then falls back on the data, finally returning `:error` if no value is available.
+
+  For relations, these functions will return the changeset original data with changes applied. To retrieve raw
+  changesets, please use `fetch_change/2`.
+
+  ```elixir
+  {:changes, street} =
+    ChangesetHelpers.fetch_field(account_changeset, [:user, :config, :address, :street])
+  ```
+  """
+  def fetch_field(changeset, [key | []]) do
+    Ecto.Changeset.fetch_field(changeset, key)
+  end
+
+  def fetch_field(changeset, [key | tail_keys]) do
+    Map.get(changeset.changes, key, Map.fetch!(changeset.data, key) |> load!(changeset.data))
+    |> Ecto.Changeset.change()
+    |> fetch_field(tail_keys)
+  end
+
+  @doc ~S"""
+  Same as `fetch_field/2` but returns the value or raises if the given nested key was not found.
+
+  ```elixir
+  street = ChangesetHelpers.fetch_field!(account_changeset, [:user, :config, :address, :street])
+  ```
+  """
+  def fetch_field!(changeset, keys) do
+    case fetch_field(changeset, keys) do
+      {_, value} ->
+        value
+
+      :error ->
+        raise KeyError, key: keys, term: changeset.data
+    end
+  end
+
+  @doc ~S"""
+  Fetches a nested change from the given changeset.
+
+  This function only looks at the `:changes` field of the given `changeset` and returns `{:ok, value}` if the change is
+  present or `:error` if it's not.
+
+  ```elixir
+  {:ok, street} =
+    ChangesetHelpers.fetch_change(account_changeset, [:user, :config, :address, :street])
+  ```
+  """
+  def fetch_change(changeset, [key | []]) do
+    Ecto.Changeset.fetch_change(changeset, key)
+  end
+
+  def fetch_change(changeset, [key | tail_keys]) do
+    case Map.get(changeset.changes, key) do
+      nil ->
+        nil
+
+      changeset ->
+        fetch_change(changeset, tail_keys)
+    end
+  end
+
+  @doc ~S"""
+  Same as `fetch_change/2` but returns the value or raises if the given nested key was not found.
+
+  ```elixir
+  street = ChangesetHelpers.fetch_change!(account_changeset, [:user, :config, :address, :street])
+  ```
+  """
+  def fetch_change!(changeset, keys) do
+    case fetch_change(changeset, keys) do
+      {:ok, value} ->
+        value
+
+      :error ->
+        raise KeyError, key: keys, term: changeset.changes
+    end
+  end
+
+  @doc ~S"""
   This function allows checking if a given field is different between two changesets.
 
   ```elixir
   {street_changed, street1, street2} =
-    diff_field(account_changeset, new_account_changeset, [:user, :user_config, :address, :street])
+    diff_field(account_changeset, new_account_changeset, [:user, :config, :address, :street])
   ```
   """
   def diff_field(changeset1, changeset2, keys) do
