@@ -134,4 +134,17 @@ defmodule ChangesetHelpersTest do
 
     assert {true, "A street", "Another street"} = {street_changed, street1, street2}
   end
+
+  test "add_error", context do
+    account_changeset = context[:account_changeset]
+
+    account_changeset = ChangesetHelpers.add_error(account_changeset, [:user, :articles, :error_key], "Some error")
+
+    refute account_changeset.valid?
+
+    {_, [article_changeset | _]} = change_assoc(account_changeset, [:user, :articles])
+
+    refute account_changeset.valid?
+    assert [error_key: {"Some error", []}] = article_changeset.errors
+  end
 end

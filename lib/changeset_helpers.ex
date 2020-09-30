@@ -203,6 +203,34 @@ defmodule ChangesetHelpers do
     {field1 != field2, field1, field2}
   end
 
+  @doc ~S"""
+  Adds an error to the nested changeset.
+
+  ```elixir
+  account_changeset =
+    ChangesetHelpers.add_error(account_changeset, [:user, :articles, :error_key], "Some error")
+  ```
+  """
+  def add_error(%Ecto.Changeset{} = changeset, keys, message, extra \\ []) do
+    reversed_keys = keys |> Enum.reverse()
+    last_key = hd(reversed_keys)
+    keys_without_last = reversed_keys |> tl() |> Enum.reverse()
+
+    {_, nested_changes} = change_assoc(changeset, keys_without_last)
+
+    nested_changes = do_add_error(nested_changes, last_key, message, extra)
+
+    ChangesetHelpers.put_assoc(changeset, keys_without_last, nested_changes)
+  end
+
+  defp do_add_error(nested_changes, key, message, extra) when is_list(nested_changes) do
+    Enum.map(nested_changes, &(Ecto.Changeset.add_error(&1, key, message, extra)))
+  end
+
+  defp do_add_error(nested_changes, key, message, extra) do
+    Ecto.Changeset.add_error(nested_changes, key, message, extra)
+  end
+
   defp load!(%Ecto.Association.NotLoaded{} = not_loaded, %{__meta__: %{state: :built}}) do
     case cardinality_to_empty(not_loaded.__cardinality__) do
       nil ->

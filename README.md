@@ -78,6 +78,14 @@ This function allows checking if a given field is different in two changesets.
   diff_field(account_changeset, new_account_changeset, [:user, :user_config, :address, :street])
 ```
 
+### `add_error(changeset, keys, message, extra \\ [])`
+
+Adds an error to the nested changeset.
+
+```
+ChangesetHelpers.add_error(account_changeset, [:user, :articles, :error_key], "Some error")
+```
+
 ## Installation
 
 Add `changeset_helpers` for Elixir as a dependency in your `mix.exs` file:
