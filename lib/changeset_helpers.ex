@@ -3,20 +3,24 @@ defmodule ChangesetHelpers do
   Provides a set of helpers to work with Changesets.
   """
 
+  def change_assoc(struct_or_changeset, keys) do
+    change_assoc(struct_or_changeset, keys, %{})
+  end
+
   @doc ~S"""
   Returns the nested association in a changeset. This function will first look into the changes and then fails back on
   data wrapped in a changeset.
 
   Changes may be added to the given changeset through the third argument.
 
-  A tuple is returned containing the original changeset and the changeset of the association.
+  A tuple is returned containing the root changeset, and the changeset of the association.
 
   ```elixir
   {account_changeset, address_changeset} =
     change_assoc(account_changeset, [:user, :config, :address], %{street: "Foo street"})
   ```
   """
-  def change_assoc(struct_or_changeset, keys, changes \\ %{}) do
+  def change_assoc(struct_or_changeset, keys, changes) when is_map(changes) do
     keys = List.wrap(keys)
 
     changed_assoc = do_change_assoc(struct_or_changeset, keys, changes)
@@ -27,26 +31,64 @@ defmodule ChangesetHelpers do
     }
   end
 
-  defp do_change_assoc(%Ecto.Changeset{} = changeset, [key | []], changes) do
+  def change_assoc(struct_or_changeset, keys, index) when is_integer(index) do
+    change_assoc(struct_or_changeset, keys, index, %{})
+  end
+
+  @doc ~S"""
+  Returns the nested association in a changeset at the given index.
+
+  A tuple is returned containing the root changeset, the changesets of the association and the changeset at the
+  specified index.
+
+  See `change_assoc(struct_or_changeset, keys, changes)`.
+  ```
+  """
+  def change_assoc(struct_or_changeset, keys, index, changes) when is_integer(index) and is_map(changes) do
+    keys = List.wrap(keys)
+
+    changed_assoc = do_change_assoc(struct_or_changeset, keys, index, changes)
+
+    {
+      put_assoc(struct_or_changeset |> Ecto.Changeset.change(), keys, changed_assoc),
+      changed_assoc,
+      Enum.at(changed_assoc, index)
+    }
+  end
+
+  defp do_change_assoc(changeset, keys, index \\ nil, changes)
+
+  defp do_change_assoc(%Ecto.Changeset{} = changeset, [key | []], nil, changes) do
     Map.get(changeset.changes, key, Map.fetch!(changeset.data, key) |> load!(changeset.data))
     |> do_change_assoc(changes)
   end
 
-  defp do_change_assoc(%{__meta__: _} = schema, [key | []], changes) do
+  defp do_change_assoc(%Ecto.Changeset{} = changeset, [key | []], index, changes) do
+    Map.get(changeset.changes, key, Map.fetch!(changeset.data, key) |> load!(changeset.data))
+    |> List.update_at(index, &(do_change_assoc(&1, changes)))
+  end
+
+  defp do_change_assoc(%{__meta__: _} = schema, [key | []], nil, changes) do
     Map.fetch!(schema, key)
     |> load!(schema)
     |> do_change_assoc(changes)
   end
 
-  defp do_change_assoc(%Ecto.Changeset{} = changeset, [key | tail_keys], changes) do
-    Map.get(changeset.changes, key, Map.fetch!(changeset.data, key) |> load!(changeset.data))
-    |> do_change_assoc(tail_keys, changes)
-  end
-
-  defp do_change_assoc(%{__meta__: _} = schema, [key | tail_keys], changes) do
+  defp do_change_assoc(%{__meta__: _} = schema, [key | []], index, changes) do
     Map.fetch!(schema, key)
     |> load!(schema)
-    |> do_change_assoc(tail_keys, changes)
+    |> List.update_at(index, &(do_change_assoc(&1, changes)))
+  end
+
+  defp do_change_assoc(%Ecto.Changeset{} = changeset, [key | tail_keys], index, changes) do
+    Map.get(changeset.changes, key, Map.fetch!(changeset.data, key) |> load!(changeset.data))
+    |> do_change_assoc(tail_keys, index, changes)
+  end
+
+  defp do_change_assoc(%{__meta__: _} = schema, [key | tail_keys], index, changes) do
+    Map.fetch!(schema, key)
+    |> load!(schema)
+    |> do_change_assoc(tail_keys, index, changes)
   end
 
   defp do_change_assoc([], _changes), do: []
@@ -74,8 +116,8 @@ defmodule ChangesetHelpers do
   ChangesetHelpers.put_assoc(account_changeset, [:user, :config, :address], address_changeset)
   ```
 
-  Instead of giving a Changeset or a schema as the third argument, a function may also be given in order to modify the
-  nested changeset in one go.
+  Instead of giving a Changeset or a schema as the third argument, a function may also be given receiving the nested
+  Changeset(s) to be updated as argument.
 
   ```elixir
   ChangesetHelpers.put_assoc(account_changeset, [:user, :articles],
@@ -89,19 +131,45 @@ defmodule ChangesetHelpers do
     do_put_assoc(changeset, List.wrap(keys), value)
   end
 
-  defp do_put_assoc(changeset, [key | []], fun) when is_function(fun) do
+  @doc ~S"""
+  Puts the given nested association in the changeset at the given index.
+
+  See `put_assoc(changeset, keys, value)`.
+  """
+  def put_assoc(changeset, keys, index, value) do
+    do_put_assoc(changeset, List.wrap(keys), index, value)
+  end
+
+  defp do_put_assoc(changeset, keys, index \\ nil, value_or_fun)
+
+  defp do_put_assoc(changeset, [key | []], nil, fun) when is_function(fun) do
     Ecto.Changeset.put_assoc(changeset, key, fun.(do_change_assoc(changeset, [key], %{})))
   end
 
-  defp do_put_assoc(changeset, [key | []], value) do
+  defp do_put_assoc(changeset, [key | []], nil, value) do
     Ecto.Changeset.put_assoc(changeset, key, value)
   end
 
-  defp do_put_assoc(changeset, [key | tail_keys], value) do
+  defp do_put_assoc(changeset, [key | []], index, fun) when is_function(fun) do
+    nested_changesets = do_change_assoc(changeset, [key], %{})
+    nested_changesets = List.update_at(nested_changesets, index, &(fun.(&1)))
+
+    Ecto.Changeset.put_assoc(changeset, key, nested_changesets)
+  end
+
+  defp do_put_assoc(changeset, [key | []], index, value) do
+    nested_changesets =
+      do_change_assoc(changeset, [key], %{})
+      |> List.replace_at(index, value)
+
+    Ecto.Changeset.put_assoc(changeset, key, nested_changesets)
+  end
+
+  defp do_put_assoc(changeset, [key | tail_keys], index, value_or_fun) do
     Ecto.Changeset.put_assoc(
       changeset,
       key,
-      do_put_assoc(do_change_assoc(changeset, [key], %{}), tail_keys, value)
+      do_put_assoc(do_change_assoc(changeset, [key], %{}), tail_keys, index, value_or_fun)
     )
   end
 

@@ -21,6 +21,10 @@ ChangesetHelpers.put_assoc(account_changeset, [:user, :articles],
 In the code above, we change a new empty Article, and add the changeset into the articles association (typically done when we want to add a new
 row of form inputs to add an entity into a form handling a nested collection of entities).
 
+### `put_assoc(changeset, keys, index, value)`
+
+Puts the given nested association in the changeset through a given list of field names, at the given index.
+
 ### `change_assoc(struct_or_changeset, keys, changes \\ %{})`
 
 Returns the nested association in a changeset. This function will first look into the changes and then fails back on
@@ -34,6 +38,10 @@ A tuple is returned containing the modified root changeset and the changeset of 
 {account_changeset, address_changeset} =
   change_assoc(account_changeset, [:user, :user_config, :address], %{street: "Foo street"})
 ```
+
+### `change_assoc(struct_or_changeset, keys, index, changes \\ %{})`
+
+Returns the nested association in a changeset at the given index.
 
 ### `fetch_field(changeset, keys)`
 

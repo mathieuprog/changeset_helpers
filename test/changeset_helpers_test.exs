@@ -45,6 +45,17 @@ defmodule ChangesetHelpersTest do
       change_assoc(account, [:user, :user_config, :address], %{street: "Foo street"})
 
     assert %Ecto.Changeset{data: %Address{}, changes: %{street: "Foo street"}} = address_changeset
+
+    {_, [article_changeset | _], article_changeset} =
+      change_assoc(account, [:user, :articles], 0, %{title: "Article X"})
+
+    assert %Ecto.Changeset{data: %Article{}, changes: %{title: "Article X"}} = article_changeset
+
+    {_, [article1, article2_changeset], article2_changeset} =
+      change_assoc(account, [:user, :articles], 1, %{title: "Article Y"})
+
+    assert "Article 1" = Ecto.Changeset.fetch_field!(Ecto.Changeset.change(article1), :title)
+    assert %Ecto.Changeset{data: %Article{}, changes: %{title: "Article Y"}} = article2_changeset
   end
 
   test "change_assoc with NotLoaded assoc" do
@@ -59,8 +70,6 @@ defmodule ChangesetHelpersTest do
 
   test "put_assoc", context do
     account_changeset = context[:account_changeset]
-
-    assert article_changeset = %Ecto.Changeset{data: %Article{}}
 
     address_changeset = change(%Address{}, %{street: "Another street"})
 
@@ -89,6 +98,48 @@ defmodule ChangesetHelpersTest do
              |> Map.fetch!(:user_config)
              |> Map.fetch!(:address)
              |> Map.fetch!(:street)
+
+    article_changeset = change(%Article{}, %{title: "Article X"})
+
+    account_changeset =
+      ChangesetHelpers.put_assoc(
+        account_changeset,
+        [:user, :articles],
+        1,
+        article_changeset
+      )
+
+    assert "Article 1" =
+             Ecto.Changeset.fetch_field!(account_changeset, :user)
+             |> Map.fetch!(:articles)
+             |> Enum.at(0)
+             |> Map.fetch!(:title)
+
+    assert "Article X" =
+             Ecto.Changeset.fetch_field!(account_changeset, :user)
+             |> Map.fetch!(:articles)
+             |> Enum.at(1)
+             |> Map.fetch!(:title)
+
+    account_changeset =
+      ChangesetHelpers.put_assoc(
+        account_changeset,
+        [:user, :articles],
+        1,
+        fn _ -> article_changeset end
+      )
+
+    assert "Article 1" =
+             Ecto.Changeset.fetch_field!(account_changeset, :user)
+             |> Map.fetch!(:articles)
+             |> Enum.at(0)
+             |> Map.fetch!(:title)
+
+    assert "Article X" =
+             Ecto.Changeset.fetch_field!(account_changeset, :user)
+             |> Map.fetch!(:articles)
+             |> Enum.at(1)
+             |> Map.fetch!(:title)
   end
 
   test "fetch_field", context do
