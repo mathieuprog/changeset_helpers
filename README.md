@@ -2,18 +2,28 @@
 
 This library provides a set of helper functions to work with Ecto Changesets.
 
+### `raise_if_invalid_fields(changeset, keys)`
+
+Raises if one of the given field has an invalid value.
+
+```elixir
+changeset
+|> validate_inclusion(:cardinal_direction, ["north", "east", "south", "west"])
+|> raise_if_invalid_fields([:cardinal_direction])
+```
+
 ### `put_assoc(changeset, keys, value)`
 
 Puts the given nested association in the changeset through a given list of field names.
 
-```
+```elixir
 ChangesetHelpers.put_assoc(account_changeset, [:user, :config, :address], address_changeset)
 ```
 
 Instead of giving a Changeset or a schema as the third argument, a function may also be given in order to modify the
 nested changeset in one go.
 
-```
+```elixir
 ChangesetHelpers.put_assoc(account_changeset, [:user, :articles],
   &(Enum.concat(&1, [%Article{} |> Ecto.Changeset.change()])))
 ```
@@ -34,7 +44,7 @@ Changes may be added to the given changeset through the third argument.
 
 A tuple is returned containing the modified root changeset and the changeset of the association.
 
-```
+```elixir
 {account_changeset, address_changeset} =
   change_assoc(account_changeset, [:user, :user_config, :address], %{street: "Foo street"})
 ```
@@ -47,7 +57,7 @@ Returns the nested association in a changeset at the given index.
 
 Fetches the given nested field from changes or from the data.
 
-```
+```elixir
 {:changes, street} =
   ChangesetHelpers.fetch_field(account_changeset, [:user, :config, :address, :street])
 ```
@@ -56,7 +66,7 @@ Fetches the given nested field from changes or from the data.
 
 Same as `fetch_field/2` but returns the value or raises if the given nested key was not found.
 
-```
+```elixir
 street = ChangesetHelpers.fetch_field!(account_changeset, [:user, :config, :address, :street])
 ```
 
@@ -64,7 +74,7 @@ street = ChangesetHelpers.fetch_field!(account_changeset, [:user, :config, :addr
 
 Fetches the given nested field from changes or from the data.
 
-```
+```elixir
 {:ok, street} =
   ChangesetHelpers.fetch_change(account_changeset, [:user, :config, :address, :street])
 ```
@@ -73,7 +83,7 @@ Fetches the given nested field from changes or from the data.
 
 Same as `fetch_change/2` but returns the value or raises if the given nested key was not found.
 
-```
+```elixir
 street = ChangesetHelpers.fetch_change!(account_changeset, [:user, :config, :address, :street])
 ```
 
@@ -81,7 +91,7 @@ street = ChangesetHelpers.fetch_change!(account_changeset, [:user, :config, :add
 
 This function allows checking if a given field is different in two changesets.
 
-```
+```elixir
 {street_changed, street1, street2} =
   diff_field(account_changeset, new_account_changeset, [:user, :user_config, :address, :street])
 ```
@@ -90,7 +100,7 @@ This function allows checking if a given field is different in two changesets.
 
 Adds an error to the nested changeset.
 
-```
+```elixir
 ChangesetHelpers.add_error(account_changeset, [:user, :articles, :error_key], "Some error")
 ```
 

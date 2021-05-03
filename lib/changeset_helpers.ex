@@ -1,4 +1,20 @@
 defmodule ChangesetHelpers do
+
+  @doc ~S"""
+  Raises if one of the given field has an invalid value.
+  """
+  def raise_if_invalid_fields(%Ecto.Changeset{valid?: false, errors: errors} = changeset, keys) do
+    if key = Enum.find(Keyword.keys(errors), &Enum.member?(keys, &1)) do
+      value = Ecto.Changeset.fetch_field!(changeset, key)
+      validations = Ecto.Changeset.validations(changeset)[key]
+
+    raise "Field `:#{key}` was provided an invalid value `#{inspect value}`." <>
+          "The field has the following changeset validations: `#{inspect validations}`"
+    end
+  end
+
+  def raise_if_invalid_fields(changeset, _keys), do: changeset
+
   @moduledoc ~S"""
   Provides a set of helpers to work with Changesets.
   """

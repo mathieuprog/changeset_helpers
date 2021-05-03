@@ -28,6 +28,18 @@ defmodule ChangesetHelpersTest do
     [account_changeset: account_changeset]
   end
 
+  test "raise_if_invalid", context do
+    account_changeset = context[:account_changeset]
+
+    %Ecto.Changeset{} = account_changeset |> raise_if_invalid_fields([:email])
+
+    assert_raise RuntimeError, fn ->
+      account_changeset
+      |> validate_length(:email, min: 200)
+      |> raise_if_invalid_fields([:email])
+    end
+  end
+
   test "change_assoc", context do
     account_changeset = context[:account_changeset]
 
