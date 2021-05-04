@@ -3,6 +3,7 @@ defmodule ChangesetHelpers.Account do
 
   schema "accounts" do
     field(:email, :string)
+    field(:mobile, :string)
     belongs_to(:user, ChangesetHelpers.User)
   end
 end

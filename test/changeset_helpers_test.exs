@@ -12,6 +12,7 @@ defmodule ChangesetHelpersTest do
         %Account{},
         %{
           email: "john@example.net",
+          mobile: "0434123456",
           user: %{
             name: "John",
             articles: [
@@ -28,10 +29,22 @@ defmodule ChangesetHelpersTest do
     [account_changeset: account_changeset]
   end
 
-  test "raise_if_invalid", context do
+  test "raise_if_invalid_fields", context do
     account_changeset = context[:account_changeset]
 
-    %Ecto.Changeset{} = account_changeset |> raise_if_invalid_fields([:email])
+    assert_raise ArgumentError, fn ->
+      account_changeset
+      |> raise_if_invalid_fields([:typo])
+    end
+
+    %Ecto.Changeset{} =
+      account_changeset
+      |> raise_if_invalid_fields([:email])
+
+    %Ecto.Changeset{} =
+      account_changeset
+      |> validate_length(:email, min: 200)
+      |> raise_if_invalid_fields([:mobile])
 
     assert_raise RuntimeError, fn ->
       account_changeset
