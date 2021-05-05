@@ -29,28 +29,62 @@ defmodule ChangesetHelpersTest do
     [account_changeset: account_changeset]
   end
 
-  test "raise_if_invalid_fields", context do
+  test "raise_if_invalid_fields/2", context do
     account_changeset = context[:account_changeset]
 
-    assert_raise ArgumentError, fn ->
+    assert_raise RuntimeError, "Field `:email` was provided an invalid value `\"john@example.net\"`. The changeset validator is `:length`.", fn ->
       account_changeset
-      |> raise_if_invalid_fields([:typo])
+      |> validate_length(:email, min: 200)
+      |> raise_if_invalid_fields(email: :length)
     end
+
+    assert_raise RuntimeError, "Field `:email` was provided an invalid value `nil`. The changeset validator is `:required`.", fn ->
+      account_changeset
+      |> put_change(:email, "")
+      |> validate_required([:email])
+      |> validate_length(:email, min: 200)
+      |> raise_if_invalid_fields(email: :required)
+    end
+
+    # `:email` is blank, validation error is `:required`, for which we don't raise
+    %Ecto.Changeset{} =
+      account_changeset
+      |> put_change(:email, "")
+      |> validate_required([:email])
+      |> validate_length(:email, min: 200)
+      |> raise_if_invalid_fields(email: :length)
+
+    # second argument must be keyword list
+    assert_raise ArgumentError, "`raise_if_invalid_fields/2` expects a keyword list as its second argument", fn ->
+      account_changeset
+      |> raise_if_invalid_fields(:email)
+    end
+
+    # `:foo` field doesn't exist
+    assert_raise ArgumentError, "unknown field `:foo`", fn ->
+      account_changeset
+      |> raise_if_invalid_fields(foo: :length)
+    end
+
+    # no validation `:length` for `:email`
+    assert_raise ArgumentError, "unknown validation `:length` for field `:email`", fn ->
+      account_changeset
+      |> raise_if_invalid_fields(email: :length)
+    end
+
+    # `:email` length is invalid but `:mobile` length is valid
+    %Ecto.Changeset{} =
+      account_changeset
+      |> validate_length(:mobile, min: 2)
+      |> validate_length(:email, min: 200)
+      |> raise_if_invalid_fields(mobile: :length)
 
     %Ecto.Changeset{} =
       account_changeset
-      |> raise_if_invalid_fields([:email])
-
-    %Ecto.Changeset{} =
-      account_changeset
-      |> validate_length(:email, min: 200)
-      |> raise_if_invalid_fields([:mobile])
-
-    assert_raise RuntimeError, fn ->
-      account_changeset
-      |> validate_length(:email, min: 200)
-      |> raise_if_invalid_fields([:email])
-    end
+      |> validate_required([:email])
+      |> validate_length(:mobile, min: 2)
+      |> validate_length(:email, min: 3)
+      |> raise_if_invalid_fields(email: [:length, :required])
   end
 
   test "change_assoc", context do
