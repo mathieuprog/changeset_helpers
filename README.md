@@ -8,9 +8,12 @@ Raises if one of the given field has an invalid value.
 
 ```elixir
 changeset
+|> validate_required([:cardinal_direction])
 |> validate_inclusion(:cardinal_direction, ["north", "east", "south", "west"])
-|> raise_if_invalid_fields([:cardinal_direction])
+|> raise_if_invalid_fields(cardinal_direction: :inclusion)
 ```
+
+The second argument is a keyword list where the key is the schema field and the value is a validation name or list of validation names. In the example above, if you want to raise if any of the `:inclusion` and `:required` validations fail, you may pass `cardinal_direction: [:inclusion, :required]`.
 
 ### `put_assoc(changeset, keys, value)`
 

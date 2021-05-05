@@ -79,12 +79,22 @@ defmodule ChangesetHelpersTest do
       |> validate_length(:email, min: 200)
       |> raise_if_invalid_fields(mobile: :length)
 
+    # multiple fields
     %Ecto.Changeset{} =
       account_changeset
       |> validate_required([:email])
       |> validate_length(:mobile, min: 2)
       |> validate_length(:email, min: 3)
-      |> raise_if_invalid_fields(email: [:length, :required])
+      |> raise_if_invalid_fields(email: [:length, :required], mobile: :length)
+
+    # multiple fields
+    assert_raise RuntimeError, "Field `:mobile` was provided an invalid value `\"0434123456\"`. The changeset validator is `:length`.", fn ->
+      account_changeset
+      |> validate_required([:email])
+      |> validate_length(:mobile, min: 100)
+      |> validate_length(:email, min: 3)
+      |> raise_if_invalid_fields(email: [:length, :required], mobile: :length)
+    end
   end
 
   test "change_assoc", context do
