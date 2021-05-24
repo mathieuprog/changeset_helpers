@@ -14,6 +14,22 @@ defmodule ChangesetHelpers do
     ensure_fields_exist!(changeset, keys_validations)
     ensure_validations_exist!(changeset, keys_validations)
 
+    # `keys_validations` may be passed in different formats:
+    #   * email: [:required, :length]
+    #   * email: :required, email: :length
+    keys_validations =
+      keys_validations
+      # flatten to: email: :required, email: :length
+      |> Enum.map(fn {key, validations} ->
+        Enum.map(List.wrap(validations), &({key, &1}))
+      end)
+      |> List.flatten()
+      # filter out duplicates
+      |> Enum.uniq()
+      # regroup to: email: [:required, :length]
+      |> Enum.group_by(fn {field, _} -> field end)
+      |> Enum.map(fn {field, validations} -> {field, Keyword.values(validations)} end)
+
     do_raise_if_invalid_fields(changeset, keys_validations)
   end
 
@@ -55,8 +71,8 @@ defmodule ChangesetHelpers do
 
   defp ensure_validations_exist!(%Ecto.Changeset{} = changeset, keys_validations) do
     required =
-      changeset.required |>
-      Enum.map(fn field -> {field, :required} end)
+      changeset.required
+      |> Enum.map(fn field -> {field, :required} end)
 
     validations =
       Ecto.Changeset.validations(changeset)
@@ -70,6 +86,7 @@ defmodule ChangesetHelpers do
         Enum.map(List.wrap(validations), &({key, &1}))
       end)
       |> List.flatten()
+      |> Enum.uniq()
 
     unknown_validations = keys_validations -- validations
 

@@ -72,6 +72,13 @@ defmodule ChangesetHelpersTest do
       |> raise_if_invalid_fields(email: :length)
     end
 
+    %Ecto.Changeset{} =
+      account_changeset
+      |> validate_required([:email])
+      |> validate_length(:mobile, min: 2)
+      |> validate_length(:email, min: 3)
+      |> raise_if_invalid_fields(email: [:length, :required], email: :required, mobile: :length)
+
     # `:email` length is invalid but `:mobile` length is valid
     %Ecto.Changeset{} =
       account_changeset
@@ -94,6 +101,30 @@ defmodule ChangesetHelpersTest do
       |> validate_length(:mobile, min: 100)
       |> validate_length(:email, min: 3)
       |> raise_if_invalid_fields(email: [:length, :required], mobile: :length)
+    end
+
+    assert_raise RuntimeError, "Field `:email` was provided an invalid value `\"123\"`. The changeset validator is `:length`.", fn ->
+      account_changeset
+      |> put_change(:email, "123")
+      |> validate_required([:email])
+      |> validate_length(:email, min: 200)
+      |> raise_if_invalid_fields(email: :required, email: :length)
+    end
+
+    assert_raise RuntimeError, "Field `:email` was provided an invalid value `\"123\"`. The changeset validator is `:length`.", fn ->
+      account_changeset
+      |> put_change(:email, "123")
+      |> validate_required([:email])
+      |> validate_length(:email, min: 200)
+      |> raise_if_invalid_fields(email: [:required, :length])
+    end
+
+    assert_raise RuntimeError, "Field `:email` was provided an invalid value `nil`. The changeset validator is `:required`.", fn ->
+      account_changeset
+      |> put_change(:email, "")
+      |> validate_required([:email])
+      |> validate_length(:email, min: 3)
+      |> raise_if_invalid_fields(email: :required, email: :length)
     end
 
     # custom error
