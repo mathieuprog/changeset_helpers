@@ -15,6 +15,18 @@ changeset
 
 The second argument is a keyword list where the key is the schema field and the value is a validation name or list of validation names. In the example above, if you want to raise if any of the `:inclusion` and `:required` validations fail, you may pass `cardinal_direction: [:inclusion, :required]`.
 
+In order to raise with a custom error message:
+
+```elixir
+assert_raise RuntimeError, "custom error message", fn ->
+  changeset
+  |> validate_change(:foo, {:my_validation, []}, fn _, _ ->
+    [{:foo, {"changeset error message", [validation: :my_validation, raise: "custom error message"]}}]
+  end)
+  |> raise_if_invalid_fields(foo: :my_validation)
+end
+```
+
 ### `put_assoc(changeset, keys, value)`
 
 Puts the given nested association in the changeset through a given list of field names.

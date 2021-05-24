@@ -21,16 +21,19 @@ defmodule ChangesetHelpers do
     Enum.find_value(errors, fn {key, {_message, meta}} ->
       if validations = keys_validations[key] do
         if validation = Enum.find(List.wrap(validations), &(&1 == meta[:validation])) do
-          {key, validation}
+          {key, validation, meta[:raise]}
         end
       end
     end)
     |> case do
-      {key, validation} ->
+      {key, validation, nil} ->
         value = Ecto.Changeset.fetch_field!(changeset, key)
 
         raise "Field `#{inspect key}` was provided an invalid value `#{inspect value}`. " <>
               "The changeset validator is `#{inspect validation}`."
+
+      {_, _, error_message} ->
+        raise error_message
 
       _ ->
         changeset

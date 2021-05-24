@@ -95,6 +95,15 @@ defmodule ChangesetHelpersTest do
       |> validate_length(:email, min: 3)
       |> raise_if_invalid_fields(email: [:length, :required], mobile: :length)
     end
+
+    # custom error
+    assert_raise RuntimeError, "custom error", fn ->
+      account_changeset
+      |> validate_change(:email, {:custom, []}, fn _, _ ->
+        [{:email, {"changeset error", [validation: :custom, raise: "custom error"]}}]
+      end)
+      |> raise_if_invalid_fields(email: :custom)
+    end
   end
 
   test "change_assoc", context do
