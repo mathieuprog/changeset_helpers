@@ -111,6 +111,15 @@ defmodule ChangesetHelpersTest do
       |> raise_if_invalid_fields(email: :required, email: :length)
     end
 
+    # raise format and not length (raise in order of validations)
+    assert_raise RuntimeError, "Field `:email` was provided an invalid value `\"123\"`. The changeset validator is `:format`.", fn ->
+      account_changeset
+      |> put_change(:email, "123")
+      |> validate_format(:email, ~r/@/)
+      |> validate_length(:email, min: 200)
+      |> raise_if_invalid_fields(email: :format, email: :length)
+    end
+
     assert_raise RuntimeError, "Field `:email` was provided an invalid value `\"123\"`. The changeset validator is `:length`.", fn ->
       account_changeset
       |> put_change(:email, "123")

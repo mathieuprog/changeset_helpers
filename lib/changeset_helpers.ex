@@ -34,7 +34,9 @@ defmodule ChangesetHelpers do
   end
 
   def do_raise_if_invalid_fields(%Ecto.Changeset{valid?: false, errors: errors} = changeset, keys_validations) do
-    Enum.find_value(errors, fn {key, {_message, meta}} ->
+    errors
+    |> Enum.reverse()
+    |> Enum.find_value(fn {key, {_message, meta}} ->
       if validations = keys_validations[key] do
         if validation = Enum.find(List.wrap(validations), &(&1 == meta[:validation])) do
           {key, validation, meta[:raise]}
