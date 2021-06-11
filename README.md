@@ -2,29 +2,25 @@
 
 This library provides a set of helper functions to work with Ecto Changesets.
 
-### `raise_if_invalid_fields(changeset, keys)`
+### `validate_comparison(changeset, field1, operator, field2_or_value, opts)`
 
-Raises if one of the given field has an invalid value.
+Validates the result of the comparison of
+  * two fields (where at least one is a change) or
+  * a change and a value, where the value is an integer, a `Date`, a `Time`,
+    a `DateTime` or a `NaiveDateTime`.
 
 ```elixir
-changeset
-|> validate_required([:cardinal_direction])
-|> validate_inclusion(:cardinal_direction, ["north", "east", "south", "west"])
-|> raise_if_invalid_fields(cardinal_direction: :inclusion)
+validate_comparison(changeset, :start_time, :lt, :end_time)
+
+assert [start_time: {"must be less than 10:00:00", [validation: :comparison]}] = changeset.errors
+assert [start_time: :comparison, end_time: :comparison] = changeset.validations
 ```
 
-The second argument is a keyword list where the key is the schema field and the value is a validation name or list of validation names. In the example above, if you want to raise if any of the `:inclusion` and `:required` validations fail, you may pass `cardinal_direction: [:inclusion, :required]`.
-
-In order to raise with a custom error message:
-
 ```elixir
-assert_raise RuntimeError, "custom error message", fn ->
-  changeset
-  |> validate_change(:foo, {:my_validation, []}, fn _, _ ->
-    [{:foo, {"changeset error message", [validation: :my_validation, raise: "custom error message"]}}]
-  end)
-  |> raise_if_invalid_fields(foo: :my_validation)
-end
+validate_comparison(appointment_changeset, :end_time, :lt, ~T[21:00:00])
+
+assert [end_time: {"must be less than 21:00:00", [validation: :comparison]}] = changeset.errors
+assert [end_time: :comparison] = changeset.validations
 ```
 
 ### `put_assoc(changeset, keys, value)`
@@ -118,6 +114,35 @@ Adds an error to the nested changeset.
 ```elixir
 ChangesetHelpers.add_error(account_changeset, [:user, :articles, :error_key], "Some error")
 ```
+
+### `raise_if_invalid_fields(changeset, keys)`
+
+Raises if one of the given field has an invalid value.
+
+```elixir
+changeset
+|> validate_required([:cardinal_direction])
+|> validate_inclusion(:cardinal_direction, ["north", "east", "south", "west"])
+|> raise_if_invalid_fields(cardinal_direction: :inclusion)
+```
+
+The second argument is a keyword list where the key is the schema field and the value is a validation name or list of validation names. In the example above, if you want to raise if any of the `:inclusion` and `:required` validations fail, you may pass `cardinal_direction: [:inclusion, :required]`.
+
+In order to raise with a custom error message:
+
+```elixir
+assert_raise RuntimeError, "custom error message", fn ->
+  changeset
+  |> validate_change(:foo, {:my_validation, []}, fn _, _ ->
+    [{:foo, {"changeset error message", [validation: :my_validation, raise: "custom error message"]}}]
+  end)
+  |> raise_if_invalid_fields(foo: :my_validation)
+end
+```
+
+### `validate_changes(changeset, fields, meta, validator)`
+
+Works like `Ecto.Changeset.validate_change/3` but may receive multiple fields.
 
 ## Installation
 

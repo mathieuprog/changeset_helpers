@@ -14,7 +14,7 @@ defmodule ChangesetHelpers do
     * `:error_on_field` - specifies on which field to add the error, defaults to the first field
     * `:message` - a customized message on failure
   """
-  def validate_comparison(changeset, field1, operator, field_or_value, opts \\ [])
+  def validate_comparison(changeset, field1, operator, field2_or_value, opts \\ [])
 
   def validate_comparison(%Ecto.Changeset{} = changeset, field1, operator, field2, opts) when is_atom(field2) do
     error_on_field = Keyword.get(opts, :error_on_field, field1)
