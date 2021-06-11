@@ -4,6 +4,164 @@ defmodule ChangesetHelpers do
   """
 
   @doc ~S"""
+  Validates the result of the comparison of
+    * two fields (where at least one is a change) or
+    * a change and a value, where the value is an integer, a `Date`, a `Time`,
+      a `DateTime` or a `NaiveDateTime`.
+
+  ## Options
+
+    * `:error_on_field` - specifies on which field to add the error, defaults to the first field
+    * `:message` - a customized message on failure
+  """
+  def validate_comparison(changeset, field1, operator, field_or_value, opts \\ [])
+
+  def validate_comparison(%Ecto.Changeset{} = changeset, field1, operator, field2, opts) when is_atom(field2) do
+    error_on_field = Keyword.get(opts, :error_on_field, field1)
+
+    operator = operator_abbr(operator)
+
+    validate_changes changeset, [field1, field2], :comparison, fn [{_, value1}, {_, value2}] ->
+      if value1 == nil && value2 == nil do
+        []
+      else
+        valid? =
+          case compare(value1, value2) do
+            :eq ->
+              operator in [:eq, :ge, :le]
+
+            :lt ->
+              operator in [:ne, :lt, :le]
+
+            :gt ->
+              operator in [:ne, :gt, :ge]
+          end
+
+        message =
+          if error_on_field == field1 do
+            Keyword.get(opts, :message, comparison_error_message(operator, value2))
+          else
+            reverse_operator =
+              case operator do
+                :lt -> :gt
+                :gt -> :lt
+                :le -> :ge
+                :ge -> :le
+                _ -> operator
+              end
+            Keyword.get(opts, :message, comparison_error_message(reverse_operator, value1))
+          end
+
+        if valid?,
+          do: [],
+          else: [{error_on_field, {message, [validation: :comparison]}}]
+      end
+    end
+  end
+
+  def validate_comparison(%Ecto.Changeset{} = changeset, field, operator, value, opts) do
+    operator = operator_abbr(operator)
+
+    Ecto.Changeset.validate_change changeset, field, :comparison, fn _, field_value ->
+      valid? =
+        case compare(field_value, value) do
+          :eq ->
+            operator in [:eq, :ge, :le]
+
+          :lt ->
+            operator in [:ne, :lt, :le]
+
+          :gt ->
+            operator in [:ne, :gt, :ge]
+        end
+
+      message = Keyword.get(opts, :message, comparison_error_message(operator, value))
+
+      if valid?,
+        do: [],
+        else: [{field, {message, [validation: :comparison]}}]
+    end
+  end
+
+  defp operator_abbr(:eq), do: :eq
+  defp operator_abbr(:ne), do: :ne
+  defp operator_abbr(:gt), do: :gt
+  defp operator_abbr(:ge), do: :ge
+  defp operator_abbr(:lt), do: :lt
+  defp operator_abbr(:le), do: :le
+
+  defp operator_abbr(:equal_to), do: :eq
+  defp operator_abbr(:not_equal_to), do: :ne
+  defp operator_abbr(:greater_than), do: :gt
+  defp operator_abbr(:greater_than_or_equal_to), do: :ge
+  defp operator_abbr(:less_than), do: :lt
+  defp operator_abbr(:less_than_or_equal_to), do: :le
+
+  defp comparison_error_message(:eq, value), do: "must be equal to #{to_string value}"
+  defp comparison_error_message(:ne, value), do: "must be not equal to #{to_string value}"
+  defp comparison_error_message(:gt, value), do: "must be greater than #{to_string value}"
+  defp comparison_error_message(:ge, value), do: "must be greater than or equal to #{to_string value}"
+  defp comparison_error_message(:lt, value), do: "must be less than #{to_string value}"
+  defp comparison_error_message(:le, value), do: "must be less than or equal to #{to_string value}"
+
+  defp compare(%Time{} = time1, %Time{} = time2), do: Time.compare(time1, time2)
+  defp compare(%Date{} = date1, %Date{} = date2), do: Date.compare(date1, date2)
+  defp compare(%DateTime{} = dt1, %DateTime{} = dt2), do: DateTime.compare(dt1, dt2)
+  defp compare(%NaiveDateTime{} = dt1, %NaiveDateTime{} = dt2), do: NaiveDateTime.compare(dt1, dt2)
+
+  defp compare(number1, number2) when is_number(number1) and is_number(number2) do
+    cond do
+      number1 == number2 -> :eq
+      number1 < number2 -> :lt
+      true -> :gt
+    end
+  end
+
+  @doc ~S"""
+  Works like `Ecto.Changeset.validate_change/3` but may receive multiple fields.
+
+  The `validator` function receives as argument a keyword list, where the keys are the field
+  names and the values are the change for this field, or the data.any()
+
+  If none of the given fields has a change, the `validator` function is not invoked.
+  """
+  def validate_changes(changeset, fields, meta, validator) when is_list(fields) do
+      fields_values = Enum.map(fields, &{&1, Ecto.Changeset.fetch_field!(changeset, &1)})
+
+      changeset =
+        cond do
+          # all of the values are nil
+          Enum.all?(fields_values, fn {_, value} -> value == nil end) ->
+            changeset
+
+          # none of the values are nil
+          Enum.all?(fields_values, fn {_, value} -> value != nil end) ->
+            errors = validator.(fields_values)
+
+            if errors do
+              Enum.reduce(errors, changeset, fn
+                {field, {msg, meta}}, changeset ->
+                  Ecto.Changeset.add_error(changeset, field, msg, meta)
+
+                {field, msg}, changeset ->
+                  Ecto.Changeset.add_error(changeset, field, msg)
+              end)
+            else
+              changeset
+            end
+
+          true ->
+            nil_field = Enum.find_value(fields_values, fn {field, value} -> value == nil && field end)
+
+            Ecto.Changeset.add_error(changeset, nil_field, "is invalid", meta)
+        end
+
+    validations = Enum.map(fields, &{&1, meta})
+
+    %{changeset | validations: validations ++ changeset.validations}
+  end
+
+  @doc ~S"""
   Raises if one of the given field has an invalid value.
   """
   def raise_if_invalid_fields(changeset, keys_validations) do
@@ -78,7 +236,13 @@ defmodule ChangesetHelpers do
 
     validations =
       Ecto.Changeset.validations(changeset)
-      |> Enum.map(fn {field, validation_tuple} -> {field, elem(validation_tuple, 0)} end)
+      |> Enum.map(fn
+        {field, validation_tuple} when is_tuple(validation_tuple) ->
+          {field, elem(validation_tuple, 0)}
+
+        {field, validation} when is_atom(validation) ->
+          {field, validation}
+        end)
 
     validations = required ++ validations
 
