@@ -74,6 +74,7 @@ defmodule ChangesetHelpersTest do
           end_date: ~D[2021-06-11],
           attendees: 5,
           max_attendees: 3,
+          int2: 1
         }
       )
 
@@ -111,6 +112,11 @@ defmodule ChangesetHelpersTest do
 
     assert [] = changeset.errors
     assert [foo: :comparison, bar: :comparison] = changeset.validations
+
+    changeset = validate_comparison(appointment_changeset, :int1, :le, :int2)
+
+    assert [] = changeset.errors
+    assert [int1: :comparison, int2: :comparison] = changeset.validations
   end
 
   test "validate_changes/4", context do

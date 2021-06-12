@@ -11,6 +11,9 @@ defmodule ChangesetHelpers.Appointment do
     field(:attendees, :integer)
     field(:max_attendees, :integer)
 
+    field(:int1, :integer)
+    field(:int2, :integer)
+
     field(:foo, :integer)
     field(:bar, :integer)
 

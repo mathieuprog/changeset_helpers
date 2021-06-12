@@ -22,7 +22,7 @@ defmodule ChangesetHelpers do
     operator = operator_abbr(operator)
 
     validate_changes changeset, [field1, field2], :comparison, fn [{_, value1}, {_, value2}] ->
-      if value1 == nil && value2 == nil do
+      if value1 == nil || value2 == nil do
         []
       else
         valid? =
@@ -192,38 +192,32 @@ defmodule ChangesetHelpers do
   The `validator` function receives as argument a keyword list, where the keys are the field
   names and the values are the change for this field, or the data.any()
 
-  If none of the given fields has a change, the `validator` function is not invoked.
+  If one of the fields is `nil`, the `validator` function is not invoked.
   """
   def validate_changes(changeset, fields, meta, validator) when is_list(fields) do
-      fields_values = Enum.map(fields, &{&1, Ecto.Changeset.fetch_field!(changeset, &1)})
+    fields_values = Enum.map(fields, &{&1, Ecto.Changeset.fetch_field!(changeset, &1)})
 
-      changeset =
-        cond do
-          # all of the values are nil
-          Enum.all?(fields_values, fn {_, value} -> value == nil end) ->
+    changeset =
+      cond do
+        # none of the values are nil
+        Enum.all?(fields_values, fn {_, value} -> value != nil end) ->
+          errors = validator.(fields_values)
+
+          if errors do
+            Enum.reduce(errors, changeset, fn
+              {field, {msg, meta}}, changeset ->
+                Ecto.Changeset.add_error(changeset, field, msg, meta)
+
+              {field, msg}, changeset ->
+                Ecto.Changeset.add_error(changeset, field, msg)
+            end)
+          else
             changeset
+          end
 
-          # none of the values are nil
-          Enum.all?(fields_values, fn {_, value} -> value != nil end) ->
-            errors = validator.(fields_values)
-
-            if errors do
-              Enum.reduce(errors, changeset, fn
-                {field, {msg, meta}}, changeset ->
-                  Ecto.Changeset.add_error(changeset, field, msg, meta)
-
-                {field, msg}, changeset ->
-                  Ecto.Changeset.add_error(changeset, field, msg)
-              end)
-            else
-              changeset
-            end
-
-          true ->
-            nil_field = Enum.find_value(fields_values, fn {field, value} -> value == nil && field end)
-
-            Ecto.Changeset.add_error(changeset, nil_field, "is invalid", meta)
-        end
+        true ->
+          changeset
+      end
 
     validations = Enum.map(fields, &{&1, meta})
 
