@@ -167,7 +167,7 @@ Add `changeset_helpers` for Elixir as a dependency in your `mix.exs` file:
 ```elixir
 def deps do
   [
-    {:changeset_helpers, "~> 0.14.0"}
+    {:changeset_helpers, "~> 0.15.0"}
   ]
 end
 ```
