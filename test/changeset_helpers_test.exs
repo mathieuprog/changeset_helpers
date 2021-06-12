@@ -29,6 +29,41 @@ defmodule ChangesetHelpersTest do
     [account_changeset: account_changeset]
   end
 
+  test "validate_list/5" do
+    appointment_changeset = change(%Appointment{}, %{days_of_week: [1, 3, 8]})
+
+    changeset = validate_list(appointment_changeset, :days_of_week, &Ecto.Changeset.validate_inclusion/3, [1..7])
+
+    assert [days_of_week: {"is invalid", [validation: :list, index: 2, validator: :validate_inclusion]}] = changeset.errors
+    assert [days_of_week: {:list, [validator: :validate_inclusion]}] = changeset.validations
+
+    changeset = validate_list(appointment_changeset, :days_of_week, :validate_inclusion, [1..7])
+
+    assert [days_of_week: {"is invalid", [validation: :list, index: 2, validator: :validate_inclusion]}] = changeset.errors
+    assert [days_of_week: {:list, [validator: :validate_inclusion]}] = changeset.validations
+
+    appointment_changeset = change(%Appointment{}, %{days_of_week: [1, 3, 5]})
+
+    changeset = validate_list(appointment_changeset, :days_of_week, &Ecto.Changeset.validate_inclusion/3, [1..7])
+
+    assert [] = changeset.errors
+    assert [days_of_week: {:list, [validator: :validate_inclusion]}] = changeset.validations
+
+    appointment_changeset = change(%Appointment{}, %{})
+
+    changeset = validate_list(appointment_changeset, :days_of_week, &Ecto.Changeset.validate_inclusion/3, [1..7])
+
+    assert [] = changeset.errors
+    assert [days_of_week: {:list, [validator: :validate_inclusion]}] = changeset.validations
+
+    appointment_changeset = change(%Appointment{}, %{days_of_week: []})
+
+    changeset = validate_list(appointment_changeset, :days_of_week, &Ecto.Changeset.validate_inclusion/3, [1..7])
+
+    assert [] = changeset.errors
+    assert [days_of_week: {:list, [validator: :validate_inclusion]}] = changeset.validations
+  end
+
   test "validate_comparison/5" do
     appointment_changeset =
       change(

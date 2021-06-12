@@ -13,5 +13,7 @@ defmodule ChangesetHelpers.Appointment do
 
     field(:foo, :integer)
     field(:bar, :integer)
+
+    field(:days_of_week, {:array, :integer})
   end
 end

@@ -23,6 +23,22 @@ assert [end_time: {"must be less than 21:00:00", [validation: :comparison]}] = c
 assert [end_time: :comparison] = changeset.validations
 ```
 
+### `validate_list(changeset, field, validation_fun, validation_fun_args)`
+
+Validates a list of values using the given validator.
+
+```elixir
+changeset =
+  %Appointment{}
+  |> Appointment.changeset(%{days_of_week: [1, 3, 8]})
+  |> validate_list(:days_of_week, &Ecto.Changeset.validate_inclusion/3, [1..7])
+
+assert [days_of_week: {"is invalid", [validation: :list, index: 2, validator: :validate_inclusion]}] = changeset.errors
+assert [days_of_week: {:list, [validator: :validate_inclusion]}] = changeset.validations
+```
+
+As the validator function is from the `Ecto.Changeset` module, you may just write `:validate_inclusion`.
+
 ### `put_assoc(changeset, keys, value)`
 
 Puts the given nested association in the changeset through a given list of field names.

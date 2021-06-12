@@ -118,6 +118,75 @@ defmodule ChangesetHelpers do
   end
 
   @doc ~S"""
+  Validates a list of values using the given validator.
+
+  ```elixir
+  changeset =
+    %Appointment{}
+    |> Appointment.changeset(%{days_of_week: [1, 3, 8]})
+    |> validate_list(:days_of_week, &Ecto.Changeset.validate_inclusion/3, [1..7])
+
+  assert [days_of_week: {"is invalid", [validation: :list, index: 2, validator: :validate_inclusion]}] = changeset.errors
+  assert [days_of_week: {:list, [validator: :validate_inclusion]}] = changeset.validations
+  ```
+  """
+  def validate_list(changeset, field, validation_fun, validation_fun_args) do
+    {validation_fun, validation_fun_name} =
+      if is_atom(validation_fun) do
+        {capture_function(validation_fun, length(validation_fun_args) + 2), validation_fun}
+        # + 2 because we must pass the changeset and the field name
+      else
+        {:name, validation_fun_name} = Function.info(validation_fun, :name)
+        {validation_fun, validation_fun_name}
+      end
+
+    values = Ecto.Changeset.get_change(changeset, field)
+
+    changeset =
+      if values == nil || values == [] do
+        changeset
+      else
+        ecto_type = type(hd(values))
+
+        {errors, index} =
+          Enum.reduce_while(values, {[], -1}, fn value, {_errors, index} ->
+            data = %{}
+            types = %{field => ecto_type}
+            params = %{field => value}
+
+            changeset = Ecto.Changeset.cast({data, types}, params, Map.keys(types))
+            changeset = apply(validation_fun, [changeset, field | validation_fun_args])
+
+            if match?(%Ecto.Changeset{valid?: false}, changeset) do
+              {:halt, {changeset.errors, index + 1}}
+            else
+              {:cont, {[], index + 1}}
+            end
+          end)
+
+        case errors do
+          [] ->
+            changeset
+
+          [{_field, {message, _meta}}] ->
+            Ecto.Changeset.add_error(changeset, field, message, validation: :list, index: index, validator: validation_fun_name)
+        end
+      end
+
+    %{changeset | validations: [{field, {:list, validator: validation_fun_name}} | changeset.validations]}
+  end
+
+  defp capture_function(fun_name, args_count), do: Function.capture(Ecto.Changeset, fun_name, args_count)
+
+  defp type(%Time{}), do: :time
+  defp type(%Date{}), do: :date
+  defp type(%DateTime{}), do: :utc_datetime
+  defp type(%NaiveDateTime{}), do: :naive_datetime
+  defp type(integer) when is_integer(integer), do: :integer
+  defp type(float) when is_float(float), do: :float
+  defp type(string) when is_binary(string), do: :string
+
+  @doc ~S"""
   Works like `Ecto.Changeset.validate_change/3` but may receive multiple fields.
 
   The `validator` function receives as argument a keyword list, where the keys are the field
