@@ -154,121 +154,127 @@ defmodule ChangesetHelpersTest do
     assert [email: :custom, mobile: :custom] == account_changeset3.validations
   end
 
-  test "raise_if_invalid_fields/2", context do
+  test "field_violates_constraint?/3", context do
     account_changeset = context[:account_changeset]
 
-    assert_raise RuntimeError, "Field `:email` was provided an invalid value `\"john@example.net\"`. The changeset validator is `:length`.", fn ->
+    changeset =
+      account_changeset
+      |> unique_constraint(:email)
+
+    refute field_violates_constraint?(changeset, :email, :unique)
+  end
+
+  test "field_fails_validation?/3", context do
+    account_changeset = context[:account_changeset]
+
+    changeset =
       account_changeset
       |> validate_length(:email, min: 200)
-      |> raise_if_invalid_fields(email: :length)
-    end
 
-    assert_raise RuntimeError, "Field `:email` was provided an invalid value `nil`. The changeset validator is `:required`.", fn ->
+    assert field_fails_validation?(changeset, :email, :length)
+
+    changeset =
       account_changeset
       |> put_change(:email, "")
       |> validate_required([:email])
       |> validate_length(:email, min: 200)
-      |> raise_if_invalid_fields(email: :required)
-    end
 
-    # `:email` is blank, validation error is `:required`, for which we don't raise
-    %Ecto.Changeset{} =
+    assert field_fails_validation?(changeset, :email, :required)
+
+    # `:email` is blank, validation error is `:required`
+    changeset =
       account_changeset
       |> put_change(:email, "")
       |> validate_required([:email])
       |> validate_length(:email, min: 200)
-      |> raise_if_invalid_fields(email: :length)
 
-    # second argument must be keyword list
-    assert_raise ArgumentError, "`raise_if_invalid_fields/2` expects a keyword list as its second argument", fn ->
-      account_changeset
-      |> raise_if_invalid_fields(:email)
-    end
+    refute field_fails_validation?(changeset, :email, :length)
 
     # `:foo` field doesn't exist
     assert_raise ArgumentError, "unknown field `:foo`", fn ->
       account_changeset
-      |> raise_if_invalid_fields(foo: :length)
+      |> field_fails_validation?(:foo, :length)
     end
 
     # no validation `:length` for `:email`
     assert_raise ArgumentError, "unknown validation `:length` for field `:email`", fn ->
       account_changeset
-      |> raise_if_invalid_fields(email: :length)
+      |> field_fails_validation?(:email, :length)
     end
 
-    %Ecto.Changeset{} =
+    changeset =
       account_changeset
       |> validate_required([:email])
       |> validate_length(:mobile, min: 2)
       |> validate_length(:email, min: 3)
-      |> raise_if_invalid_fields(email: [:length, :required], email: :required, mobile: :length)
+
+    refute field_fails_validation?(changeset, :email, [:length, :required])
+    refute field_fails_validation?(changeset, :mobile, :length)
 
     # `:email` length is invalid but `:mobile` length is valid
-    %Ecto.Changeset{} =
-      account_changeset
-      |> validate_length(:mobile, min: 2)
-      |> validate_length(:email, min: 200)
-      |> raise_if_invalid_fields(mobile: :length)
-
-    # multiple fields
-    %Ecto.Changeset{} =
+    changeset =
       account_changeset
       |> validate_required([:email])
       |> validate_length(:mobile, min: 2)
-      |> validate_length(:email, min: 3)
-      |> raise_if_invalid_fields(email: [:length, :required], mobile: :length)
+      |> validate_length(:email, min: 200)
 
-    # multiple fields
-    assert_raise RuntimeError, "Field `:mobile` was provided an invalid value `\"0434123456\"`. The changeset validator is `:length`.", fn ->
+    assert field_fails_validation?(changeset, :email, [:required, :length])
+    refute field_fails_validation?(changeset, :mobile, :length)
+
+    changeset =
       account_changeset
       |> validate_required([:email])
       |> validate_length(:mobile, min: 100)
       |> validate_length(:email, min: 3)
-      |> raise_if_invalid_fields(email: [:length, :required], mobile: :length)
-    end
 
-    assert_raise RuntimeError, "Field `:email` was provided an invalid value `\"123\"`. The changeset validator is `:length`.", fn ->
+    refute field_fails_validation?(changeset, :email, [:length, :required])
+    assert field_fails_validation?(changeset, :mobile, :length)
+
+    changeset =
       account_changeset
       |> put_change(:email, "123")
       |> validate_required([:email])
       |> validate_length(:email, min: 200)
-      |> raise_if_invalid_fields(email: :required, email: :length)
-    end
+
+    assert field_fails_validation?(changeset, :email, [:length, :required])
 
     # raise format and not length (raise in order of validations)
-    assert_raise RuntimeError, "Field `:email` was provided an invalid value `\"123\"`. The changeset validator is `:format`.", fn ->
+    changeset =
       account_changeset
       |> put_change(:email, "123")
+      |> validate_required([:email])
       |> validate_format(:email, ~r/@/)
       |> validate_length(:email, min: 200)
-      |> raise_if_invalid_fields(email: :format, email: :length)
-    end
 
-    assert_raise RuntimeError, "Field `:email` was provided an invalid value `\"123\"`. The changeset validator is `:length`.", fn ->
+    assert field_fails_validation?(changeset, :email, [:length, :format])
+    assert field_fails_validation?(changeset, :email, :length)
+    assert field_fails_validation?(changeset, :email, :format)
+    refute field_fails_validation?(changeset, :email, :required)
+
+    changeset =
       account_changeset
       |> put_change(:email, "123")
       |> validate_required([:email])
       |> validate_length(:email, min: 200)
-      |> raise_if_invalid_fields(email: [:required, :length])
-    end
 
-    assert_raise RuntimeError, "Field `:email` was provided an invalid value `nil`. The changeset validator is `:required`.", fn ->
+    assert field_fails_validation?(changeset, :email, [:length, :required])
+
+    changeset =
       account_changeset
       |> put_change(:email, "")
       |> validate_required([:email])
       |> validate_length(:email, min: 3)
-      |> raise_if_invalid_fields(email: :required, email: :length)
-    end
 
-    # custom error
-    assert_raise RuntimeError, "custom error", fn ->
+    assert field_fails_validation?(changeset, :email, [:length, :required])
+
+    # custom validation
+    changeset =
       account_changeset
       |> validate_change(:email, {:custom, []}, fn _, _ ->
-        [{:email, {"changeset error", [validation: :custom, raise: "custom error"]}}]
+        [{:email, {"changeset error", [validation: :custom]}}]
       end)
-      |> raise_if_invalid_fields(email: :custom)
-    end
+
+    assert field_fails_validation?(changeset, :email, :custom)
   end
 
   test "change_assoc", context do
