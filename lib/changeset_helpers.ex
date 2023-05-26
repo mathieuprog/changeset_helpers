@@ -224,104 +224,96 @@ defmodule ChangesetHelpers do
     %{changeset | validations: validations ++ changeset.validations}
   end
 
-  @doc ~S"""
-  Raises if one of the given field has an invalid value.
-  """
-  def raise_if_invalid_fields(changeset, keys_validations) do
-    unless Keyword.keyword?(keys_validations) do
-      raise ArgumentError, message: "`raise_if_invalid_fields/2` expects a keyword list as its second argument"
-    end
+  def field_fails_validation?(changeset, field, validations) do
+    validations = List.wrap(validations)
+    ensure_field_exists!(changeset, field)
+    ensure_validations_exist!(changeset, field, validations)
 
-    ensure_fields_exist!(changeset, keys_validations)
-    ensure_validations_exist!(changeset, keys_validations)
-
-    do_raise_if_invalid_fields(changeset, keys_validations)
+    do_field_fails_validation?(changeset, field, validations)
   end
 
-  defp do_raise_if_invalid_fields(%Ecto.Changeset{valid?: true} = changeset, _), do: changeset
+  defp do_field_fails_validation?(%Ecto.Changeset{valid?: true}, _, _), do: false
 
-  defp do_raise_if_invalid_fields(%Ecto.Changeset{errors: errors} = changeset, keys_validations) do
-    # `keys_validations` may be passed in different formats:
-    #   * email: [:required, :length]
-    #   * email: :required, email: :length
-    keys_validations =
-      keys_validations
-      # flatten to: email: :required, email: :length
-      |> Enum.map(fn {key, validations} ->
-        Enum.map(List.wrap(validations), &({key, &1}))
-      end)
-      |> List.flatten()
-      # filter out duplicates
-      |> Enum.uniq()
-      # regroup to: email: [:required, :length]
-      |> Enum.group_by(fn {field, _} -> field end)
-      |> Enum.map(fn {field, validations} -> {field, Keyword.values(validations)} end)
+  defp do_field_fails_validation?(changeset, field, validations) do
+    errors = get_errors_for_field(changeset, field)
 
-    errors
-    |> Enum.reverse()
-    |> Enum.find_value(fn {key, {_message, meta}} ->
-      if validations = keys_validations[key] do
-        if validation = Enum.find(List.wrap(validations), &(&1 == meta[:validation])) do
-          {key, validation, meta[:raise]}
-        end
-      end
+    validations = List.wrap(validations)
+
+    Enum.any?(errors, fn {_key, {_message, meta}} ->
+      Enum.member?(validations, meta[:validation])
     end)
-    |> case do
-      {key, validation, nil} ->
-        value = Ecto.Changeset.fetch_field!(changeset, key)
+  end
 
-        raise "Field `#{inspect key}` was provided an invalid value `#{inspect value}`. " <>
-              "The changeset validator is `#{inspect validation}`."
+  def field_violates_constraint?(changeset, field, constraints) do
+    constraints = List.wrap(constraints)
+    ensure_field_exists!(changeset, field)
+    ensure_constraints_exist!(changeset, field, constraints)
 
-      {_, _, error_message} ->
-        raise error_message
+    do_field_violates_constraint?(changeset, field, constraints)
+  end
 
-      _ ->
-        changeset
+  defp do_field_violates_constraint?(%Ecto.Changeset{valid?: true}, _, _), do: false
+
+  defp do_field_violates_constraint?(changeset, field, constraints) do
+    errors = get_errors_for_field(changeset, field)
+
+    constraints = List.wrap(constraints)
+
+    Enum.any?(errors, fn {_key, {_message, meta}} ->
+      Enum.member?(constraints, meta[:constraint])
+    end)
+  end
+
+  defp get_errors_for_field(%Ecto.Changeset{errors: errors}, field) do
+    Enum.filter(errors, fn {key, _} -> key == field end)
+  end
+
+  defp ensure_field_exists!(%Ecto.Changeset{types: types}, field) do
+    unless Map.has_key?(types, field) do
+      raise ArgumentError, "unknown field `#{inspect field}`"
     end
   end
 
-  defp ensure_fields_exist!(%Ecto.Changeset{} = changeset, keys_validations) do
-    Keyword.keys(keys_validations)
-    |> Enum.each(&ensure_field_exists!(changeset, &1))
-  end
+  defp ensure_validations_exist!(%Ecto.Changeset{} = changeset, field, validations) do
+    required? = Enum.member?(changeset.required, field)
 
-  defp ensure_field_exists!(%Ecto.Changeset{types: types}, key) do
-    unless Map.has_key?(types, key) do
-      raise ArgumentError, "unknown field `#{inspect key}`"
-    end
-  end
-
-  defp ensure_validations_exist!(%Ecto.Changeset{} = changeset, keys_validations) do
-    required =
-      changeset.required
-      |> Enum.map(fn field -> {field, :required} end)
-
-    validations =
+    all_validations =
       Ecto.Changeset.validations(changeset)
+      |> Enum.filter(fn {f, _} -> field == f end)
       |> Enum.map(fn
-        {field, validation_tuple} when is_tuple(validation_tuple) ->
-          {field, elem(validation_tuple, 0)}
+        {_, validation_tuple} when is_tuple(validation_tuple) ->
+          elem(validation_tuple, 0)
 
-        {field, validation} when is_atom(validation) ->
-          {field, validation}
+        {_, validation} when is_atom(validation) ->
+          validation
         end)
 
-    validations = required ++ validations
+    all_validations =
+      if required? do
+        [:required] ++ all_validations
+      else
+        all_validations
+      end
 
-    keys_validations =
-      keys_validations
-      |> Enum.map(fn {key, validations} ->
-        Enum.map(List.wrap(validations), &({key, &1}))
-      end)
-      |> List.flatten()
-      |> Enum.uniq()
-
-    unknown_validations = keys_validations -- validations
+    unknown_validations = validations -- all_validations
 
     if unknown_validations != [] do
-      [{field, validation} | _] = unknown_validations
+      [validation | _] = unknown_validations
       raise ArgumentError, "unknown validation `#{inspect validation}` for field `#{inspect field}`"
+    end
+  end
+
+  defp ensure_constraints_exist!(%Ecto.Changeset{} = changeset, field, constraints) do
+    all_constraints =
+      Ecto.Changeset.constraints(changeset)
+      |> Enum.filter(fn %{field: f} -> field == f end)
+      |> Enum.map(fn %{type: type} -> type end)
+
+    unknown_constraints = constraints -- all_constraints
+
+    if unknown_constraints != [] do
+      [constraint | _] = unknown_constraints
+      raise ArgumentError, "unknown constraint `#{inspect constraint}` for field `#{inspect field}`"
     end
   end
 
