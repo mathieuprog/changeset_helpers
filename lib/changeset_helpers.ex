@@ -235,6 +235,12 @@ defmodule ChangesetHelpers do
     ensure_fields_exist!(changeset, keys_validations)
     ensure_validations_exist!(changeset, keys_validations)
 
+    do_raise_if_invalid_fields(changeset, keys_validations)
+  end
+
+  defp do_raise_if_invalid_fields(%Ecto.Changeset{valid?: true} = changeset, _), do: changeset
+
+  defp do_raise_if_invalid_fields(%Ecto.Changeset{errors: errors} = changeset, keys_validations) do
     # `keys_validations` may be passed in different formats:
     #   * email: [:required, :length]
     #   * email: :required, email: :length
@@ -251,10 +257,6 @@ defmodule ChangesetHelpers do
       |> Enum.group_by(fn {field, _} -> field end)
       |> Enum.map(fn {field, validations} -> {field, Keyword.values(validations)} end)
 
-    do_raise_if_invalid_fields(changeset, keys_validations)
-  end
-
-  def do_raise_if_invalid_fields(%Ecto.Changeset{valid?: false, errors: errors} = changeset, keys_validations) do
     errors
     |> Enum.reverse()
     |> Enum.find_value(fn {key, {_message, meta}} ->
@@ -278,8 +280,6 @@ defmodule ChangesetHelpers do
         changeset
     end
   end
-
-  def do_raise_if_invalid_fields(changeset, _), do: changeset
 
   defp ensure_fields_exist!(%Ecto.Changeset{} = changeset, keys_validations) do
     Keyword.keys(keys_validations)
