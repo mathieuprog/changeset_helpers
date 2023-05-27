@@ -136,7 +136,7 @@ ChangesetHelpers.add_error(account_changeset, [:user, :articles, :error_key], "S
 Checks whether a field as the given validation error key.
 
 ```elixir
-field_fails_validation?(changeset, :email, :unsafe_unique)
+ChangesetHelpers.field_fails_validation?(changeset, :email, :unsafe_unique)
 ```
 
 ### `field_violates_constraint?(changeset, field, constraints)`
@@ -144,7 +144,7 @@ field_fails_validation?(changeset, :email, :unsafe_unique)
 Checks whether a field as the given constraint error key.
 
 ```elixir
-field_violates_constraint?(changeset, :email, :unique)
+ChangesetHelpers.field_violates_constraint?(changeset, :email, :unique)
 ```
 
 ### `validate_changes(changeset, fields, meta, validator)`
