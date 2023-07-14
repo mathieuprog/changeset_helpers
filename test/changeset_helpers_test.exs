@@ -409,6 +409,8 @@ defmodule ChangesetHelpersTest do
 
     assert {:ok, "A street"} = ChangesetHelpers.fetch_change(account_changeset, [:user, :user_config, :address, :street])
     assert "A street" = ChangesetHelpers.fetch_change!(account_changeset, [:user, :user_config, :address, :street])
+    assert :error = ChangesetHelpers.fetch_change(account_changeset, [:user, :user_config, :address, :city])
+    assert :error = ChangesetHelpers.fetch_change(account_changeset, [:user, :dummy])
   end
 
   test "diff_field", context do

@@ -546,7 +546,7 @@ defmodule ChangesetHelpers do
   def fetch_change(%Ecto.Changeset{} = changeset, [key | tail_keys]) do
     case Map.get(changeset.changes, key) do
       nil ->
-        nil
+        :error
 
       changeset ->
         fetch_change(changeset, tail_keys)

@@ -4,6 +4,7 @@ defmodule ChangesetHelpers.CreateTables do
   def change do
     create table(:addresses) do
       add(:street, :string)
+      add(:city, :string)
     end
 
     create table(:users_configs) do
