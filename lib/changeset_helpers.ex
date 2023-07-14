@@ -307,7 +307,7 @@ defmodule ChangesetHelpers do
     all_constraints =
       Ecto.Changeset.constraints(changeset)
       |> Enum.filter(fn %{field: f} -> field == f end)
-      |> Enum.map(fn %{type: type} -> type end)
+      |> Enum.map(fn %{error_type: error_type} -> error_type end)
 
     unknown_constraints = constraints -- all_constraints
 
