@@ -317,6 +317,31 @@ defmodule ChangesetHelpers do
     end
   end
 
+  def update_assoc_changes(%Ecto.Changeset{} = changeset, keys, changes) when is_map(changes) do
+    if has_change?(changeset, keys) do
+      put_assoc(changeset, keys, fn changeset -> Enum.map(changeset, &Ecto.Changeset.change(&1, changes)) end)
+    else
+      changeset
+    end
+  end
+
+  def has_change?(%Ecto.Changeset{} = changeset, [key | []]) do
+    Ecto.Changeset.fetch_change(changeset, key) != :error
+  end
+
+  def has_change?(%Ecto.Changeset{} = changeset, [key | tail_keys]) do
+    case Map.get(changeset.changes, key) do
+      nil ->
+        false
+
+      %Ecto.Changeset{} = changeset ->
+        has_change?(changeset, tail_keys)
+
+      changesets when is_list(changesets) ->
+        Enum.any?(changesets, &has_change?(&1, tail_keys))
+    end
+  end
+
   def change_assoc(struct_or_changeset, keys) do
     change_assoc(struct_or_changeset, keys, %{})
   end
@@ -480,7 +505,7 @@ defmodule ChangesetHelpers do
   end
 
   defp do_put_assoc(changeset, [key | tail_keys], index, value_or_fun) do
-    Ecto.Changeset.put_assoc(
+    Ecto.Changeset.put_change(
       changeset,
       key,
       do_put_assoc(do_change_assoc(changeset, [key], %{}), tail_keys, index, value_or_fun)

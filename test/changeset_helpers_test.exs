@@ -413,6 +413,84 @@ defmodule ChangesetHelpersTest do
     assert :error = ChangesetHelpers.fetch_change(account_changeset, [:user, :dummy])
   end
 
+  test "has_change?", context do
+    account_changeset = context[:account_changeset]
+
+    assert ChangesetHelpers.has_change?(account_changeset, [:user, :articles, :comments])
+    assert ChangesetHelpers.has_change?(account_changeset, [:user, :articles, :comments, :body])
+    refute ChangesetHelpers.has_change?(account_changeset, [:user, :notes])
+  end
+
+  test "update_assoc_changes", context do
+    account_changeset = context[:account_changeset]
+
+    notes_changes = %{text: "Lorem ipsum"}
+
+    account_changeset =
+      ChangesetHelpers.update_assoc_changes(
+        account_changeset,
+        [:user, :notes],
+        notes_changes
+      )
+
+    assert [] !=
+              Ecto.Changeset.fetch_field!(account_changeset, :user)
+              |> Map.fetch!(:notes)
+
+    account_changeset =
+      ChangesetHelpers.put_assoc(
+        account_changeset,
+        [:user, :notes],
+        fn changeset -> Enum.map(changeset, &Map.merge(&1, notes_changes)) end
+      )
+
+    assert [] =
+             Ecto.Changeset.fetch_field!(account_changeset, :user)
+             |> Map.fetch!(:notes)
+
+    changes = %{title: "Lorem ipsum 1"}
+
+    account_changeset =
+      ChangesetHelpers.update_assoc_changes(
+        account_changeset,
+        [:user, :articles],
+        changes
+      )
+
+    assert [article1, article2] =
+      Ecto.Changeset.fetch_field!(account_changeset, :user)
+      |> Map.fetch!(:articles)
+
+    assert article1.title == "Lorem ipsum 1"
+    assert article2.title == "Lorem ipsum 1"
+
+    changes = %{title: "Lorem ipsum 2"}
+
+    account_changeset =
+      ChangesetHelpers.put_assoc(
+        account_changeset,
+        [:user, :articles],
+        fn changeset -> Enum.map(changeset, &Ecto.Changeset.change(&1, changes)) end
+      )
+
+    assert [article1, article2] =
+             Ecto.Changeset.fetch_field!(account_changeset, :user)
+             |> Map.fetch!(:articles)
+
+    assert article1.title == "Lorem ipsum 2"
+    assert article2.title == "Lorem ipsum 2"
+
+    # TODO: support nested associations in associations
+    # comments_changes = %{body: "Lorem ipsum comment"}
+
+    # account_changeset =
+    #   ChangesetHelpers.put_assoc(
+    #     account_changeset,
+    #     [:user, :articles, :comments],
+    #     fn changeset -> Enum.map(changeset, &Ecto.Changeset.change(&1, comments_changes)) end
+    #   )
+  end
+
   test "diff_field", context do
     account_changeset = context[:account_changeset]
 

@@ -80,6 +80,10 @@ A tuple is returned containing the modified root changeset and the changeset of 
 
 Returns the nested association in a changeset at the given index.
 
+### `update_assoc_changes(changeset, keys, changes)`
+
+Adds changes to the changed association changesets.
+
 ### `fetch_field(changeset, keys)`
 
 Fetches the given nested field from changes or from the data.
@@ -112,6 +116,12 @@ Same as `fetch_change/2` but returns the value or raises if the given nested key
 
 ```elixir
 street = ChangesetHelpers.fetch_change!(account_changeset, [:user, :config, :address, :street])
+```
+
+### `has_change?(changeset, keys)`
+
+```elixir
+ChangesetHelpers.has_change?(account_changeset, [:user, :config, :address, :street])
 ```
 
 ### `diff_field(changeset1, changeset2, keys)`
