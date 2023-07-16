@@ -419,6 +419,7 @@ defmodule ChangesetHelpersTest do
     assert ChangesetHelpers.has_change?(account_changeset, [:user, :articles, :comments])
     assert ChangesetHelpers.has_change?(account_changeset, [:user, :articles, :comments, :body])
     refute ChangesetHelpers.has_change?(account_changeset, [:user, :notes])
+    assert ChangesetHelpers.has_change?(account_changeset, :user)
   end
 
   test "update_assoc_changes", context do

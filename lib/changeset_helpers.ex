@@ -325,20 +325,24 @@ defmodule ChangesetHelpers do
     end
   end
 
-  def has_change?(%Ecto.Changeset{} = changeset, [key | []]) do
+  def has_change?(%Ecto.Changeset{} = changeset, keys) do
+    do_has_change?(changeset, List.wrap(keys))
+  end
+
+  def do_has_change?(%Ecto.Changeset{} = changeset, [key | []]) do
     Ecto.Changeset.fetch_change(changeset, key) != :error
   end
 
-  def has_change?(%Ecto.Changeset{} = changeset, [key | tail_keys]) do
+  def do_has_change?(%Ecto.Changeset{} = changeset, [key | tail_keys]) do
     case Map.get(changeset.changes, key) do
       nil ->
         false
 
       %Ecto.Changeset{} = changeset ->
-        has_change?(changeset, tail_keys)
+        do_has_change?(changeset, tail_keys)
 
       changesets when is_list(changesets) ->
-        Enum.any?(changesets, &has_change?(&1, tail_keys))
+        Enum.any?(changesets, &do_has_change?(&1, tail_keys))
     end
   end
 
