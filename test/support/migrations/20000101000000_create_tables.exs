@@ -27,6 +27,11 @@ defmodule ChangesetHelpers.CreateTables do
       add(:user_id, references(:users))
     end
 
+    create table(:notes) do
+      add(:text, :string)
+      add(:user_id, references(:users))
+    end
+
     create table(:comments) do
       add(:body, :string)
       add(:article_id, references(:articles))
