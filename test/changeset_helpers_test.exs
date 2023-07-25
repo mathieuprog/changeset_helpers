@@ -29,6 +29,44 @@ defmodule ChangesetHelpersTest do
     [account_changeset: account_changeset]
   end
 
+  test "validate_not_present/2" do
+    changes = %{start_time: ~T[11:00:00], end_time: ~T[12:00:00]}
+
+    changeset =
+      %Appointment{}
+      |> cast(changes, [:start_time])
+      |> validate_not_present([:end_time, :foo])
+
+    refute changeset.valid?
+    assert [end_time: {"cannot be changed", [validation: :not_present]}] = changeset.errors
+
+    changeset =
+      %Appointment{}
+      |> change(changes)
+      |> validate_not_present(:end_time)
+
+    refute changeset.valid?
+    assert [end_time: {"cannot be changed", [validation: :not_present]}] = changeset.errors
+
+    changes = %{start_time: ~T[11:00:00]}
+
+    changeset =
+      %Appointment{}
+      |> cast(changes, [:start_time])
+      |> validate_not_present([:end_time, :foo])
+
+    assert changeset.valid?
+    assert [] == changeset.errors
+
+    changeset =
+      %Appointment{}
+      |> change(changes)
+      |> validate_not_present(:end_time)
+
+      assert changeset.valid?
+    assert [] == changeset.errors
+  end
+
   test "validate_list/5" do
     appointment_changeset = change(%Appointment{}, %{days_of_week: [1, 3, 8]})
 
