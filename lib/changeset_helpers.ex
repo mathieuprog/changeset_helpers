@@ -83,6 +83,24 @@ defmodule ChangesetHelpers do
     end
   end
 
+  @doc ~S"""
+  `validate_not_present/3` checks if the specified attribute is present in the changeset's parameters.
+  If the attribute is present, an error is added to the changeset's `:errors` key.
+  """
+  def validate_not_present(changeset, field_or_fields) do
+    fields = List.wrap(field_or_fields)
+
+    Enum.reduce(fields, changeset, fn field, changeset ->
+      present? = !!Ecto.Changeset.get_change(changeset, field) or !!changeset.params[to_string(field)]
+
+      if present? do
+        Ecto.Changeset.add_error(changeset, field, "cannot be changed", validation: :not_present)
+      else
+        changeset
+      end
+    end)
+  end
+
   defp operator_abbr(:eq), do: :eq
   defp operator_abbr(:ne), do: :ne
   defp operator_abbr(:gt), do: :gt
