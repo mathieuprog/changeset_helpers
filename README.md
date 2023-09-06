@@ -23,7 +23,7 @@ assert [end_time: {"must be less than 21:00:00", [validation: :comparison]}] = c
 assert [end_time: :comparison] = changeset.validations
 ```
 
-### `validate_not_present(changeset, field)`
+### `validate_not_changed(changeset, field)`
 
 Checks if the specified attribute is present in the changeset's parameters. If the attribute is present, an error is added to the changeset's `:errors` key.
 
@@ -33,8 +33,8 @@ changes = %{foo: 1, bar: 2}
 changeset =
   %Appointment{}
   |> cast(changes, [:foo])
-  |> validate_not_present([:bar])
-  |> validate_not_present([:baz, :qux])
+  |> validate_not_changed([:bar])
+  |> validate_not_changed([:baz, :qux])
 
 refute changeset.valid?
 assert [bar: {"cannot be changed", [validation: :not_present]}] = changeset.errors
