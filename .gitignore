@@ -2,6 +2,8 @@
 /.idea/
 *.iml
 
+.lh
+
 # The directory Mix will write compiled artifacts to.
 /_build/
 
@@ -25,4 +27,3 @@ erl_crash.dump
 
 # Ignore package tarball (built via "mix hex.build").
 changeset_helpers-*.tar
-
