@@ -10,5 +10,6 @@ config :changeset_helpers, ChangesetHelpers.Repo,
   password: "postgres",
   database: "changeset_helpers",
   hostname: "localhost",
+  port: 5434,
   pool: Ecto.Adapters.SQL.Sandbox,
   priv: "test/support"
