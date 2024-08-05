@@ -31,8 +31,9 @@ defmodule ChangesetHelpers.MixProject do
 
   defp deps do
     [
-      {:ecto_sql, "~> 3.10"},
-      {:postgrex, "~> 0.17", only: :test},
+      {:ecto, "~> 3.11"},
+      {:ecto_sql, "~> 3.11", only: :test},
+      {:postgrex, "~> 0.19", only: :test},
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false}
     ]
   end
